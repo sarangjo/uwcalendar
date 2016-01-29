@@ -5,7 +5,7 @@ var fs = require('fs');
 var google = require('googleapis');
 var googleAuth = require('google-auth-library');
 
-var SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
+var SCOPES = ['https://www.googleapis.com/auth/calendar'];
 var TOKEN_DIR = 'credentials/';
 var TOKEN_PATH = TOKEN_DIR + 'uwgooglecal-cred.json';
 
@@ -14,11 +14,11 @@ var clientSecret;
 var clientId;
 var redirectUrl;
 var auth = new googleAuth();
-var oauth2Client;
+var oauth2Client = null;
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  res.render('index', { title: 'UW Google Cal' });
+  res.render('index', { title: 'UW Google Cal', loggedout: true });
 });
 
 /* GET login page */
@@ -35,12 +35,12 @@ router.get('/login', function(req, res, next) {
   }); 
 });
 
-// Authorize a client
+// Authorize a client to access the calendar
 // authCallback is where to come after the user has been authenticated
 function authorize(res , credentials, authCallback) {
   clientSecret = credentials.installed.client_secret;
   clientId = credentials.installed.client_id;
-  redirectUrl = credentials.installed.redirect_uris[0];
+  redirectUrl = credentials.installed.redirect_uris[1];
   
   oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
 
@@ -48,7 +48,6 @@ function authorize(res , credentials, authCallback) {
   fs.readFile(TOKEN_PATH, function(err, token) {
     if (err) {
       var authUrl = oauth2Client.generateAuthUrl({
-        access_type: 'offline',
         scope: SCOPES
       });
       authCallback(res, authUrl);
@@ -62,14 +61,13 @@ function authorize(res , credentials, authCallback) {
 
 // Renders the login screen with the authorization URL.
 function renderLogin(res, authUrl) {
-  res.render('login', { title: 'Login', auth: authUrl });
+  res.render('login', { title: 'Login', auth: authUrl, loggedout: true });
 }
-
 
 /* GET userauthorized page. */
 router.get('/authorized', function(req, res) {
-  // The auth token is in the "token" GET param
-  var token = req.query.token;
+  // The auth token is in the "code" GET param
+  var token = req.query.code;
 
   oauth2Client.getToken(token, function(err, token) {
     if (err) {
@@ -88,7 +86,7 @@ function renderAuthorized(res, isAuthorized) {
   if (isAuthorized)
     res.redirect('events');
   else {
-    var params = { result: "Failed!" };
+    var params = { result: "Failed!", loggedout: true };
     res.render('authorize', params );
   }
 }
@@ -107,6 +105,9 @@ function storeToken(token) {
 }
 
 router.get('/events', function(req, res) {
+  if (oauth2Client == null) {
+    res.redirect('/login');
+  }
   listEvents(req, res, oauth2Client, renderEvents);
 });
 
@@ -147,46 +148,53 @@ function renderEvents(req, res, params) {
   res.render('events', params);
 }
 
-/* GET hello world page. */
-router.get('/helloworld', function(req, res) {
-  res.render('helloworld', { title: 'Hello World!' });
-});
+router.post('/addevent', function(req, res) {
+  var name = req.body.eventname;
+  var start = new Date(req.body.eventstart);
+  var end = new Date();
 
-/* GET Userlist page. */
-router.get('/userlist', function(req, res) {
-  var db = req.db;
-  var collection = db.get('usercollection');
-  collection.find({}, {}, function(e, docs) {
-    res.render('userlist', {
-      "userlist" : docs
-    });
-  });
-});
+  // one hour away
+  end.setTime(start.getTime() + (60*60*1000));
 
-/* GET New User page. */
-router.get('/newuser', function(req, res) {
-  res.render('newuser', { title: "New User" });
-});
+  console.log("Start: " + start);
 
-/* POST to Add User service. */
-router.post('/adduser', function(req, res) {
-  var db = req.db;
+  /*var end = start.substring(0, 11);
+  end += "23";
+  end += start.substring(13);*/
 
-  var user = req.body.username;
-  var email = req.body.useremail;
+  console.log("End: " + end);
 
-  var collection = db.get('usercollection');
-
-  collection.insert({
-    "username": user,
-    "email": email
-  }, function(err, doc) {
-    if (err) {
-      res.send("Error. Lel.");
-    } else {
-      res.redirect('userlist');
+  var event = {
+    'summary': name,
+    'start': {
+      'dateTime': start.toISOString(),
+      'timeZone': 'America/Los_Angeles',
+    },
+    'end': {
+      'dateTime': '2016-01-28T17:00:00-07:00',
+      'timeZone': 'America/Los_Angeles',
     }
+  };
+
+  var calendar = google.calendar('v3');
+
+  calendar.events.insert({
+    auth: oauth2Client,
+    calendarId: 'primary',
+    resource: event
+  }, function(err, event) {
+    if (err) {
+      res.send('There was an error contacting the Calendar service: ' + err);
+      return;
+    }
+    //res.redirect('events');
   });
+});
+
+router.get('/logout', function(req, res) {
+  oauth2Client = null;
+
+  res.redirect('/');
 });
 
 module.exports = router;

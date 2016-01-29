@@ -4,3 +4,7 @@ block content
   h1= title
   p Event summary: #{eventsummary}
   p Date: #{eventdate}
+  form#formAddEvent(name="addevent",method="post",action="/addevent")
+        input#inputEventName(type="text", placeholder="eventname", name="eventname")
+        input#inputEventTime(type="datetime-local", placeholder="eventstart", name="eventstart")
+        button#btnSubmit(type="submit") submit

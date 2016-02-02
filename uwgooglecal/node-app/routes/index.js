@@ -9,11 +9,9 @@ var SCOPES = ['https://www.googleapis.com/auth/calendar'];
 var TOKEN_DIR = 'credentials/';
 var TOKEN_PATH = TOKEN_DIR + 'uwgooglecal-cred.json';
 
-// Auth variables
-var clientSecret;
-var clientId;
-var redirectUrl;
-var auth = new googleAuth();
+var TIMEZONE = "-08:00";
+
+// Authorization client
 var oauth2Client = null;
 
 /* GET home page. */
@@ -38,16 +36,19 @@ router.get('/login', function(req, res, next) {
 // Authorize a client to access the calendar
 // authCallback is where to come after the user has been authenticated
 function authorize(res , credentials, authCallback) {
-  clientSecret = credentials.installed.client_secret;
-  clientId = credentials.installed.client_id;
-  redirectUrl = credentials.installed.redirect_uris[1];
-  
+  var clientSecret = credentials.installed.client_secret;
+  var clientId = credentials.installed.client_id;
+  // 0: default page, 1: localhost
+  var redirectUrl = credentials.installed.redirect_uris[1];
+  var auth = new googleAuth();
+
   oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
 
   // Check if we have previously stored a token.
   fs.readFile(TOKEN_PATH, function(err, token) {
     if (err) {
       var authUrl = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
         scope: SCOPES
       });
       authCallback(res, authUrl);
@@ -64,7 +65,7 @@ function renderLogin(res, authUrl) {
   res.render('login', { title: 'Login', auth: authUrl, loggedout: true });
 }
 
-/* GET userauthorized page. */
+/* GET authorized page. This is after retrieving the OAuth2 token. */
 router.get('/authorized', function(req, res) {
   // The auth token is in the "code" GET param
   var token = req.query.code;
@@ -91,7 +92,7 @@ function renderAuthorized(res, isAuthorized) {
   }
 }
 
-// Saves the token
+// Saves the token locally
 function storeToken(token) {
   try {
     fs.mkdirSync(TOKEN_DIR);
@@ -104,37 +105,72 @@ function storeToken(token) {
   console.log('Token stored to ' + TOKEN_PATH);
 }
 
+// Standard String format: 2016-01-28T17:00:00-07:00
+function dateToString(date) {
+  var str = date.toISOString().substring(0, 19);
+  return str + TIMEZONE;
+}
+
+/* GET events page. */
 router.get('/events', function(req, res) {
   if (oauth2Client == null) {
     res.redirect('/login');
   }
-  listEvents(req, res, oauth2Client, renderEvents);
+  listCals(req, res, oauth2Client, renderEvents);
 });
+
+function listCals(req, res, auth, callback) {
+  /*var calendar = google.calendar('v3');
+  
+  // Figure out which calendars there are
+  calendar.calendarList.list({
+    auth: auth
+  }, function(err, response) {
+    if (err)  {
+      console.log('The API returned an error: ' + err);
+      res.redirect('/');
+    }
+
+    var cals = response.list;
+
+    for (var i = 0; i < cals.length; i++) {
+      var cal = cals[i];
+      console.log(cal.id);
+    }*/
+
+    listEvents(req, res, auth, callback);
+  /*});*/
+}
 
 function listEvents(req, res, auth, callback) {
   var calendar = google.calendar('v3');
-  var result = {};
+  var nowDate = dateToString(new Date());
+
+  console.log(nowDate);
+
+  // List the next 10 events in the primary calendar.
   calendar.events.list({
     auth: auth,
     calendarId: 'primary',
-    timeMin: (new Date()).toISOString(),
-    maxResults: 1,
+    timeMin: nowDate,
+    maxResults: 10,
     singleEvents: true
   }, function(err, response) {
     if (err) {
       console.log('The API returned an error: ' + err);
-      return;
+      res.redirect('/');
     }
     var events = response.items;
+    var result = {};
     if (events.length == 0) {
       console.log('No upcoming events found.');
     } else {
-      /*console.log('Upcoming 10 events:');
+      console.log('Upcoming 10 events:');
       for (var i = 0; i < events.length; i++) {
         var event = events[i];
         var start = event.start.dateTime || event.start.date;
         console.log('%s - %s', start, event.summary);
-      }*/
+      }
       var event = events[0];
       result.eventsummary = event.summary;
       result.eventdate = (event.start.dateTime || event.start.date);
@@ -148,30 +184,29 @@ function renderEvents(req, res, params) {
   res.render('events', params);
 }
 
+/* POST addevent page. Adds new event and redirects to /events page. */
 router.post('/addevent', function(req, res) {
   var name = req.body.eventname;
-  var start = new Date(req.body.eventstart);
-  var end = new Date();
+  var start = req.body.eventstart + ":00" + TIMEZONE;
+  var end = start;
 
   // one hour away
-  end.setTime(start.getTime() + (60*60*1000));
+  var starthr = parseInt(start.substring(11, 13));
 
-  console.log("Start: " + start);
+  console.log("Start hour" + starthr);
 
-  /*var end = start.substring(0, 11);
-  end += "23";
-  end += start.substring(13);*/
-
-  console.log("End: " + end);
+  var end = start.substring(0, 11);
+  end += starthr+1;
+  end += start.substring(13);
 
   var event = {
     'summary': name,
     'start': {
-      'dateTime': start.toISOString(),
+      'dateTime': start,
       'timeZone': 'America/Los_Angeles',
     },
     'end': {
-      'dateTime': '2016-01-28T17:00:00-07:00',
+      'dateTime': end,
       'timeZone': 'America/Los_Angeles',
     }
   };
@@ -183,16 +218,22 @@ router.post('/addevent', function(req, res) {
     calendarId: 'primary',
     resource: event
   }, function(err, event) {
+    console.log("Event logged!");
     if (err) {
-      res.send('There was an error contacting the Calendar service: ' + err);
-      return;
+      console.log('There was an error contacting the Calendar service: ' + err);
     }
-    //res.redirect('events');
+    res.redirect('events');
   });
 });
 
+/* GET logout page. Deletes OAuth2 token. */
 router.get('/logout', function(req, res) {
   oauth2Client = null;
+
+  // delete authorization token
+  fs.unlinkSync(TOKEN_PATH);
+
+  console.log("deleted auth token");
 
   res.redirect('/');
 });

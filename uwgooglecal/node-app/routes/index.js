@@ -17,159 +17,166 @@ var QTR_DETAILS = 'details/qtr-details.json';
 // Authorization client
 var oauth2Client = null;
 
+//////// HELPERS ////////
+
+// Standard String format: 2016-01-28T17:00:00-07:00
+function dateToString(date) {
+	var str = date.toISOString().substring(0, 19);
+	return str + TIMEZONE;
+}
+
+/////////////////////////
+
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  res.render('index', { title: 'UW Google Cal', loggedout: true });
+	res.render('index', { title: 'UW Google Cal', loggedout: true });
 });
 
 /* GET login page */
 router.get('/login', function(req, res, next) {
-  // Load client secrets from a local file.
-  fs.readFile('client_secret.json', function(err, content) {
-	if (err) {
-	  console.log('Error loading client secret file: ' + err);
-	  return;
-	}
-	// Authorize a client with the loaded credentials, and render
-	// the login screen if the user isn't already authorized
-	authorize(res, JSON.parse(content), renderLogin);
-  }); 
+	// Load client secrets from a local file.
+	fs.readFile('client_secret.json', function(err, content) {
+		if (err) {
+			console.log('Error loading client secret file: ' + err);
+			return;
+		}
+		// Setup our client with the loaded credentials.
+		setupApp(res, JSON.parse(content));
+	}); 
 });
 
-// Authorize a client to access the calendar
-// authCallback is where to come after the user has been authenticated
-function authorize(res , credentials, authCallback) {
-  var clientSecret = credentials.installed.client_secret;
-  var clientId = credentials.installed.client_id;
-  // 0: default page, 1: localhost
-  var redirectUrl = credentials.installed.redirect_uris[1];
-  var auth = new googleAuth();
+// Setup a client to access the calendar, and continue the workflow.
+function setupApp(res, credentials) {
+	var clientSecret = credentials.installed.client_secret;
+	var clientId = credentials.installed.client_id;
+	// 0: default page, 1: localhost
+	var redirectUrl = credentials.installed.redirect_uris[1];
+	var auth = new googleAuth();
 
-  oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
+	oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
 
-  // Check if we have previously stored a token.
-  fs.readFile(TOKEN_PATH, function(err, token) {
-	if (err) {
-	  var authUrl = oauth2Client.generateAuthUrl({
-		access_type: 'offline',
-		scope: SCOPES
-	  });
-	  authCallback(res, authUrl);
-	} else {
-	  oauth2Client.credentials = JSON.parse(token);
-	  // Jump to post-authorize
-	  renderAuthorized(res, true);
-	}
-  });
+	// Now that the client has been setup, we go on to user auth
+	checkIfUserAuthorized(res);
 }
 
-// Renders the login screen with the authorization URL.
+/**
+ * Check if we have previously stored a token for this user.
+ * If we have, jumps right to the entry page.
+ * If not, prompts user to login.
+ */
+function checkIfUserAuthorized(res) {
+	fs.readFile(TOKEN_PATH, function(err, token) {
+		if (err) {
+			var authUrl = oauth2Client.generateAuthUrl({
+				access_type: 'offline',
+				scope: SCOPES
+			});
+			renderLogin(res, authUrl);
+		} else {
+			oauth2Client.credentials = JSON.parse(token);
+			// Jump to post-setup
+			res.redirect('classes');
+		}
+	});
+}
+
+// If the user has not been authorized, renders the login screen with the authorization URL.
 function renderLogin(res, authUrl) {
-  res.render('login', { title: 'Login', auth: authUrl, loggedout: true });
+	res.render('login', { title: 'Login', auth: authUrl, loggedout: true });
 }
 
 /* GET authorized page. This is after retrieving the OAuth2 token. */
 router.get('/authorized', function(req, res) {
-  // The auth token is in the "code" GET param
-  var token = req.query.code;
+	// The auth token is in the "code" GET param
+	var token = req.query.code;
 
-  oauth2Client.getToken(token, function(err, token) {
-	if (err) {
-	  console.log("Access token error", err);
-	  renderAuthorized(res, false);
-	}
-
-	oauth2Client.credentials = token;
-	storeToken(token);
-	renderAuthorized(res, true);
-  });
+	oauth2Client.getToken(token, function(err, token) {
+		if (err) {
+			console.log("Access token error", err);
+			renderFailedAuth(res, false);
+			return;
+		}
+		oauth2Client.credentials = token;
+		storeToken(token);
+		res.redirect('classes');
+	});
 });
 
-// Render what needs to be rendered once the user has been authorized
-function renderAuthorized(res, isAuthorized) {
-  if (isAuthorized)
-	res.redirect('classes');
-  else {
+// Render what needs to be rendered if the user was not actually authorized
+function renderFailedAuth(res) {
 	var params = { result: "Failed!", loggedout: true };
 	res.render('authorize', params );
-  }
 }
 
-// Saves the token locally
+// Saves the user auth token locally
+// TODO: save in database?
 function storeToken(token) {
-  try {
-	fs.mkdirSync(TOKEN_DIR);
-  } catch (err) {
-	if (err.code != 'EEXIST') {
-	  throw err;
+	try {
+		fs.mkdirSync(TOKEN_DIR);
+	} catch (err) {
+		if (err.code != 'EEXIST') {
+			throw err;
+		}
 	}
-  }
-  fs.writeFile(TOKEN_PATH, JSON.stringify(token));
-  console.log('Token stored to ' + TOKEN_PATH);
-}
-
-// Standard String format: 2016-01-28T17:00:00-07:00
-function dateToString(date) {
-  var str = date.toISOString().substring(0, 19);
-  return str + TIMEZONE;
+	fs.writeFile(TOKEN_PATH, JSON.stringify(token));
+	console.log('Token stored to ' + TOKEN_PATH);
 }
 
 /* GET classes page. */
 router.get('/classes', function(req, res) {
-  if (oauth2Client == null) {
-	res.redirect('/login');
-	return;
-  }
-
-  //listCals(req, res, oauth2Client, renderEvents);
-  listEvents(req, res, oauth2Client, renderEvents);
+	if (oauth2Client == null) {
+		res.redirect('/login');
+		return;
+	}
+	listEvents(req, res, oauth2Client, renderClasses);
 });
 
+// Lists events in the console, and one on the page
 function listEvents(req, res, auth, callback) {
-  var calendar = google.calendar('v3');
-  var minDate = dateToString(new Date(2016, 1, 17, 0, 0, 0));
-  var maxDate = dateToString(new Date(2016, 1, 17, 11, 59, 59));
+	var calendar = google.calendar('v3');
+	var minDate = dateToString(new Date(2016, 1, 17, 0, 0, 0));
+	var maxDate = dateToString(new Date(2016, 1, 17, 11, 59, 59));
 
-  // List the next 10 events in the primary calendar.
-  calendar.events.list({
-	auth: auth,
-	calendarId: 'primary',
-	timeMin: minDate,
-	timeMax: maxDate,
-	maxResults: 10,
-	singleEvents: true,
-	orderBy: 'startTime'
-  }, function(err, response) {
-	if (err) {
-	  console.log('The API returned an error: ' + err);
-	  res.redirect('/');
-	}
-	var events = response.items;
-	var result = {};
-	if (events.length == 0) {
-	  console.log('No upcoming events found.');
-	} else {
-	  console.log('Upcoming 10 events:');
-	  for (var i = 0; i < events.length; i++) {
-		var event = events[i];
-		var start = event.start.dateTime || event.start.date;
-		console.log('%s - %s', start, event.summary);
-	  }
-	  var event = events[0];
-	  result.eventsummary = event.summary;
-	  result.eventdate = (event.start.dateTime || event.start.date);
-	}
-	callback(req, res, result);
-  });
+	// List the next 10 events in the primary calendar.
+	calendar.events.list({
+		auth: auth,
+		calendarId: 'primary',
+		timeMin: minDate,
+		timeMax: maxDate,
+		maxResults: 10,
+		singleEvents: true,
+		orderBy: 'startTime'
+	}, function(err, response) {
+		if (err) {
+			console.log('The API returned an error: ' + err);
+			res.redirect('/');
+		}
+		var events = response.items;
+		var result = {};
+		if (events.length == 0) {
+			console.log('No upcoming events found.');
+		} else {
+			console.log('Upcoming 10 events:');
+			for (var i = 0; i < events.length; i++) {
+				var event = events[i];
+				var start = event.start.dateTime || event.start.date;
+				console.log('%s - %s', start, event.summary);
+			}
+			var event = events[0];
+			result.eventsummary = event.summary;
+			result.eventdate = (event.start.dateTime || event.start.date);
+		}
+		callback(req, res, result);
+	});
 }
 
-function renderEvents(req, res, params) {
-  params.title = 'Events';
-  res.render('classes', params);
+function renderClasses(req, res, params) {
+	params.title = 'Classes';
+	res.render('classes', params);
 }
 
-/* POST addevent page. Adds new event and redirects to /classes page. */
-router.post('/addevent', function(req, res) {
+/* POST addclass page. Adds new event and redirects to /classes page. */
+router.post('/addclass', function(req, res) {
 	var name = req.body.classname;
 	var loc = req.body.classlocation;
 	var starthr = parseInt(req.body.classstart);
@@ -182,8 +189,8 @@ router.post('/addevent', function(req, res) {
 	// Recurrence info
 	fs.readFile(QTR_DETAILS, function(err, content) {
 		if (err) {
-		  console.log('Error loading quarter info: ' + err);
-		  return;
+			console.log('Error loading quarter info: ' + err);
+			return;
 		}
 
 		var event = getEvent(name, loc, starthr, endhr, JSON.parse(content)[qtr]);
@@ -203,15 +210,13 @@ router.post('/addevent', function(req, res) {
 			}
 			res.redirect('classes');
 		});
-  	});
+	});
 });
 
-/** 
- * Creates the actual event resource object and returns it.
- */
+// Creates the actual event resource object and returns it.
 function getEvent(name, loc, starthr, endhr, qtrDetails) {
 	// Recurrence details
-	var startdate = qtrDetails.start;  //2016-xx-xx
+	var startdate = qtrDetails.start;//2016-xx-xx
 
 	var start = startdate + "T" + starthr + ":30:00" + TIMEZONE;
 	var end = start.substring(0, 11);
@@ -235,7 +240,7 @@ function getEvent(name, loc, starthr, endhr, qtrDetails) {
 		location: loc,
 		// Repeat MWF till end of quarter
 		recurrence: [
-       		recurrenceInfo
+		recurrenceInfo
 		]
 	};
 }
@@ -247,7 +252,7 @@ router.get('/logout', function(req, res) {
 	// delete authorization token
 	fs.unlinkSync(TOKEN_PATH);
 
-	console.log("auth token deleted");
+	console.log("Auth token deleted.");
 
 	res.redirect('/');
 });

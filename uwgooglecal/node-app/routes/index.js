@@ -9,7 +9,10 @@ var SCOPES = ['https://www.googleapis.com/auth/calendar'];
 var TOKEN_DIR = 'credentials/';
 var TOKEN_PATH = TOKEN_DIR + 'uwgooglecal-cred.json';
 
+// TODO: Make this DST-dependent
 var TIMEZONE = "-08:00";
+
+var QTR_DETAILS = 'details/qtr-details.json';
 
 // Authorization client
 var oauth2Client = null;
@@ -23,13 +26,13 @@ router.get('/', function(req, res, next) {
 router.get('/login', function(req, res, next) {
   // Load client secrets from a local file.
   fs.readFile('client_secret.json', function(err, content) {
-    if (err) {
-      console.log('Error loading client secret file: ' + err);
-      return;
-    }
-    // Authorize a client with the loaded credentials, and render
-    // the login screen if the user isn't already authorized
-    authorize(res, JSON.parse(content), renderLogin);
+	if (err) {
+	  console.log('Error loading client secret file: ' + err);
+	  return;
+	}
+	// Authorize a client with the loaded credentials, and render
+	// the login screen if the user isn't already authorized
+	authorize(res, JSON.parse(content), renderLogin);
   }); 
 });
 
@@ -46,17 +49,17 @@ function authorize(res , credentials, authCallback) {
 
   // Check if we have previously stored a token.
   fs.readFile(TOKEN_PATH, function(err, token) {
-    if (err) {
-      var authUrl = oauth2Client.generateAuthUrl({
-        access_type: 'offline',
-        scope: SCOPES
-      });
-      authCallback(res, authUrl);
-    } else {
-      oauth2Client.credentials = JSON.parse(token);
-      // Jump to post-authorize
-      renderAuthorized(res, true);
-    }
+	if (err) {
+	  var authUrl = oauth2Client.generateAuthUrl({
+		access_type: 'offline',
+		scope: SCOPES
+	  });
+	  authCallback(res, authUrl);
+	} else {
+	  oauth2Client.credentials = JSON.parse(token);
+	  // Jump to post-authorize
+	  renderAuthorized(res, true);
+	}
   });
 }
 
@@ -71,35 +74,35 @@ router.get('/authorized', function(req, res) {
   var token = req.query.code;
 
   oauth2Client.getToken(token, function(err, token) {
-    if (err) {
-      console.log("Access token error", err);
-      return;
-    }
+	if (err) {
+	  console.log("Access token error", err);
+	  renderAuthorized(res, false);
+	}
 
-    oauth2Client.credentials = token;
-    storeToken(token);
-    renderAuthorized(res, true);
+	oauth2Client.credentials = token;
+	storeToken(token);
+	renderAuthorized(res, true);
   });
 });
 
 // Render what needs to be rendered once the user has been authorized
 function renderAuthorized(res, isAuthorized) {
   if (isAuthorized)
-    res.redirect('events');
+	res.redirect('classes');
   else {
-    var params = { result: "Failed!", loggedout: true };
-    res.render('authorize', params );
+	var params = { result: "Failed!", loggedout: true };
+	res.render('authorize', params );
   }
 }
 
 // Saves the token locally
 function storeToken(token) {
   try {
-    fs.mkdirSync(TOKEN_DIR);
+	fs.mkdirSync(TOKEN_DIR);
   } catch (err) {
-    if (err.code != 'EEXIST') {
-      throw err;
-    }
+	if (err.code != 'EEXIST') {
+	  throw err;
+	}
   }
   fs.writeFile(TOKEN_PATH, JSON.stringify(token));
   console.log('Token stored to ' + TOKEN_PATH);
@@ -111,131 +114,142 @@ function dateToString(date) {
   return str + TIMEZONE;
 }
 
-/* GET events page. */
-router.get('/events', function(req, res) {
+/* GET classes page. */
+router.get('/classes', function(req, res) {
   if (oauth2Client == null) {
-    res.redirect('/login');
+	res.redirect('/login');
+	return;
   }
-  listCals(req, res, oauth2Client, renderEvents);
+
+  //listCals(req, res, oauth2Client, renderEvents);
+  listEvents(req, res, oauth2Client, renderEvents);
 });
-
-function listCals(req, res, auth, callback) {
-  /*var calendar = google.calendar('v3');
-  
-  // Figure out which calendars there are
-  calendar.calendarList.list({
-    auth: auth
-  }, function(err, response) {
-    if (err)  {
-      console.log('The API returned an error: ' + err);
-      res.redirect('/');
-    }
-
-    var cals = response.list;
-
-    for (var i = 0; i < cals.length; i++) {
-      var cal = cals[i];
-      console.log(cal.id);
-    }*/
-
-    listEvents(req, res, auth, callback);
-  /*});*/
-}
 
 function listEvents(req, res, auth, callback) {
   var calendar = google.calendar('v3');
-  var nowDate = dateToString(new Date());
-
-  console.log(nowDate);
+  var minDate = dateToString(new Date(2016, 1, 17, 0, 0, 0));
+  var maxDate = dateToString(new Date(2016, 1, 17, 11, 59, 59));
 
   // List the next 10 events in the primary calendar.
   calendar.events.list({
-    auth: auth,
-    calendarId: 'primary',
-    timeMin: nowDate,
-    maxResults: 10,
-    singleEvents: true
+	auth: auth,
+	calendarId: 'primary',
+	timeMin: minDate,
+	timeMax: maxDate,
+	maxResults: 10,
+	singleEvents: true,
+	orderBy: 'startTime'
   }, function(err, response) {
-    if (err) {
-      console.log('The API returned an error: ' + err);
-      res.redirect('/');
-    }
-    var events = response.items;
-    var result = {};
-    if (events.length == 0) {
-      console.log('No upcoming events found.');
-    } else {
-      console.log('Upcoming 10 events:');
-      for (var i = 0; i < events.length; i++) {
-        var event = events[i];
-        var start = event.start.dateTime || event.start.date;
-        console.log('%s - %s', start, event.summary);
-      }
-      var event = events[0];
-      result.eventsummary = event.summary;
-      result.eventdate = (event.start.dateTime || event.start.date);
-    }
-    callback(req, res, result);
+	if (err) {
+	  console.log('The API returned an error: ' + err);
+	  res.redirect('/');
+	}
+	var events = response.items;
+	var result = {};
+	if (events.length == 0) {
+	  console.log('No upcoming events found.');
+	} else {
+	  console.log('Upcoming 10 events:');
+	  for (var i = 0; i < events.length; i++) {
+		var event = events[i];
+		var start = event.start.dateTime || event.start.date;
+		console.log('%s - %s', start, event.summary);
+	  }
+	  var event = events[0];
+	  result.eventsummary = event.summary;
+	  result.eventdate = (event.start.dateTime || event.start.date);
+	}
+	callback(req, res, result);
   });
 }
 
 function renderEvents(req, res, params) {
   params.title = 'Events';
-  res.render('events', params);
+  res.render('classes', params);
 }
 
-/* POST addevent page. Adds new event and redirects to /events page. */
+/* POST addevent page. Adds new event and redirects to /classes page. */
 router.post('/addevent', function(req, res) {
-  var name = req.body.eventname;
-  var start = req.body.eventstart + ":00" + TIMEZONE;
-  var end = start;
+	var name = req.body.classname;
+	var loc = req.body.classlocation;
+	var starthr = parseInt(req.body.classstart);
+	var endhr = starthr+1;
+	// 0-padding
+	starthr = ((starthr < 10) ? ("0" + starthr) : starthr);
+	
+	var qtr = req.body.classqtr;
+	
+	// Recurrence info
+	fs.readFile(QTR_DETAILS, function(err, content) {
+		if (err) {
+		  console.log('Error loading quarter info: ' + err);
+		  return;
+		}
 
-  // one hour away
-  var starthr = parseInt(start.substring(11, 13));
+		var event = getEvent(name, loc, starthr, endhr, JSON.parse(content)[qtr]);
 
-  console.log("Start hour" + starthr);
+		var calendar = google.calendar('v3');
 
-  var end = start.substring(0, 11);
-  end += starthr+1;
-  end += start.substring(13);
-
-  var event = {
-    'summary': name,
-    'start': {
-      'dateTime': start,
-      'timeZone': 'America/Los_Angeles',
-    },
-    'end': {
-      'dateTime': end,
-      'timeZone': 'America/Los_Angeles',
-    }
-  };
-
-  var calendar = google.calendar('v3');
-
-  calendar.events.insert({
-    auth: oauth2Client,
-    calendarId: 'primary',
-    resource: event
-  }, function(err, event) {
-    console.log("Event logged!");
-    if (err) {
-      console.log('There was an error contacting the Calendar service: ' + err);
-    }
-    res.redirect('events');
-  });
+		calendar.events.insert({
+			auth: oauth2Client,
+			calendarId: 'primary',
+			resource: event
+		}, function(err, event) {
+			if (err) {
+				console.log('There was an error contacting the Calendar service: ' + err);
+			} else {
+				console.log("Event logged! Event info:");
+				console.log(event);
+			}
+			res.redirect('classes');
+		});
+  	});
 });
+
+/** 
+ * Creates the actual event resource object and returns it.
+ */
+function getEvent(name, loc, starthr, endhr, qtrDetails) {
+	// Recurrence details
+	var startdate = qtrDetails.start;  //2016-xx-xx
+
+	var start = startdate + "T" + starthr + ":30:00" + TIMEZONE;
+	var end = start.substring(0, 11);
+	end += endhr;
+	end += ":20";
+	end += start.substring(16);
+
+	var enddate = (qtrDetails.end).replace(new RegExp("-", 'g'), "");
+
+	var recurrenceInfo = 'RRULE:FREQ=WEEKLY;UNTIL=' + enddate + 'T115959Z;WKST=SU;BYDAY=MO,WE,FR'
+
+	return {
+		summary: name,
+		start: {
+			dateTime: start,
+			timeZone: 'America/Los_Angeles',
+		}, end: {
+			dateTime: end,
+			timeZone: 'America/Los_Angeles',
+		},
+		location: loc,
+		// Repeat MWF till end of quarter
+		recurrence: [
+       		recurrenceInfo
+		]
+	};
+}
 
 /* GET logout page. Deletes OAuth2 token. */
 router.get('/logout', function(req, res) {
-  oauth2Client = null;
+	oauth2Client = null;
 
-  // delete authorization token
-  fs.unlinkSync(TOKEN_PATH);
+	// delete authorization token
+	fs.unlinkSync(TOKEN_PATH);
 
-  console.log("deleted auth token");
+	console.log("auth token deleted");
 
-  res.redirect('/');
+	res.redirect('/');
 });
 
 module.exports = router;

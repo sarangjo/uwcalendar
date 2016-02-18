@@ -2,29 +2,41 @@ extends layout
 
 block content
   h1= title
-  p Event summary: #{eventsummary}
-  p Date: #{eventdate}
-  br
   p
-    b Add a new event:
+    b Add a new classes:
   form#formAddClass(name="addclass",method="post",action="/addclass")
-        input#inputClassName(type="text",placeholder="Class Name",name="classname")
-        br
-        br
-        input#inputClassLocation(type="text",placeholder="Room Number",name="classlocation")
-        br
-        br
-        select#inputClassStart(name="classstart")
-          option(value="9") 9
-          option(value="10") 10
-          option(value="11") 11
-          option(value="12") 12
-          option(value="1") 1
-        br
-        br
-        select#inputQuarter(name="classqtr")
-          option(value="wi16") Winter 2016
-          option(value="sp16") Spring 2016
-        br
-        br
-        button#btnSubmit(type="submit") Submit
+    select#inputQuarter(name="classqtr")
+      option(value="wi16") Winter 2016
+      option(value="sp16") Spring 2016
+    br
+    br
+    table
+      tr
+        th Name
+        th Room
+        th Start
+        th End
+        th Days
+      // each val in [1,2,3]
+      -val= 1
+      tr
+        td
+          input#inputClassName(type="text",placeholder="Class Name",name="classname#{val}",value="Sidd")
+        td
+          input#inputClassLocation(type="text",placeholder="Room Number",name="classlocation#{val}",value="CSE003")
+        td
+          input#inputClassStart(type="time",name="classstart#{val}",value="09:30") 
+        td
+          input#inputClassEnd(type="time",name="classend#{val}",value="10:20")
+        td
+          input#inputClassDays(type="checkbox",name="monday")
+          | M
+          input#inputClassDays(type="checkbox",name="tuesday")
+          | T
+          input#inputClassDays(type="checkbox",name="wednesday")
+          | W
+          input#inputClassDays(type="checkbox",name="thursday")
+          | Th
+          input#inputClassDays(type="checkbox",name="friday")
+          | F
+    button#btnSubmit(type="submit") Add

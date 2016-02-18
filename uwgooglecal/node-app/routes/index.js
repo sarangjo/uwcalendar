@@ -128,7 +128,8 @@ router.get('/classes', function(req, res) {
 		res.redirect('/login');
 		return;
 	}
-	listEvents(req, res, oauth2Client, renderClasses);
+	//listEvents(req, res, oauth2Client, renderClasses);
+	renderClasses(req, res, {});
 });
 
 // Lists events in the console, and one on the page
@@ -177,12 +178,22 @@ function renderClasses(req, res, params) {
 
 /* POST addclass page. Adds new event and redirects to /classes page. */
 router.post('/addclass', function(req, res) {
-	var name = req.body.classname;
-	var loc = req.body.classlocation;
-	var starthr = parseInt(req.body.classstart);
-	var endhr = starthr+1;
+	var cl = "1";
+
+	console.log("Adding class:");
+	console.log(req.body);
+
+	var name = req.body["classname" + cl];
+	var loc = req.body["classlocation" + cl];
+	var start = req.body["classstart" + cl];
+	var end = req.body["classend" + cl];
+
+	var days = parseDays(req.body);
+	console.log("days: " + days);
+	
+	/*var endhr = starthr+1;
 	// 0-padding
-	starthr = ((starthr < 10) ? ("0" + starthr) : starthr);
+	starthr = ((starthr < 10) ? ("0" + starthr) : starthr);*/
 	
 	var qtr = req.body.classqtr;
 	
@@ -193,7 +204,7 @@ router.post('/addclass', function(req, res) {
 			return;
 		}
 
-		var event = getEvent(name, loc, starthr, endhr, JSON.parse(content)[qtr]);
+		var event = getEvent(name, loc, start, end, JSON.parse(content)[qtr], days);
 
 		var calendar = google.calendar('v3');
 
@@ -213,20 +224,66 @@ router.post('/addclass', function(req, res) {
 	});
 });
 
-// Creates the actual event resource object and returns it.
-function getEvent(name, loc, starthr, endhr, qtrDetails) {
+// Parses out the days string from the request body
+function parseDays(reqBody) {
+	var start = true;
+	var days = "";
+
+	if (reqBody["monday"]) {
+		start = false;
+		days += "MO";
+	}
+	if (reqBody["tuesday"]) {
+		if (!start)
+			days += ",";
+		else 
+			start = false;
+		days += "TU";
+	}
+	if (reqBody["wednesday"]) {
+		if (!start)
+			days += ",";
+		else 
+			start = false;
+		days += "WE";
+	}
+	if (reqBody["thursday"]) {
+		if (!start)
+			days += ",";
+		else 
+			start = false;
+		days += "TH";
+	}
+	if (reqBody["friday"]) {
+		if (!start)
+			days += ",";
+		else 
+			start = false;
+		days += "FR";
+	}
+
+	return days;
+}
+
+// Creates a Google Calendar event resource object.
+function getEvent(name, loc, start, end, qtrDetails, days) {
 	// Recurrence details
-	var startdate = qtrDetails.start;//2016-xx-xx
+	var startdate = qtrDetails.start; //2016-xx-xx
 
-	var start = startdate + "T" + starthr + ":30:00" + TIMEZONE;
-	var end = start.substring(0, 11);
-	end += endhr;
-	end += ":20";
-	end += start.substring(16);
+	var start = startdate + "T" + start + ":00" + TIMEZONE;
+	var end = start.substring(0, 11) + end + start.substring(16);
 
+	// Removes all the "-"s to conform to the format needed
 	var enddate = (qtrDetails.end).replace(new RegExp("-", 'g'), "");
 
-	var recurrenceInfo = 'RRULE:FREQ=WEEKLY;UNTIL=' + enddate + 'T115959Z;WKST=SU;BYDAY=MO,WE,FR'
+	var recurrenceInfo = 'RRULE:FREQ=WEEKLY;UNTIL=' + enddate + 'T115959Z;WKST=SU;BYDAY=' + days;
+
+	console.log("recurrence info: " + recurrenceInfo);
+
+	//recurrenceInfo += ((days & 1) ? "MO" : "");
+	//if (start)
+
+	//MO,WE,FR'
 
 	return {
 		summary: name,
@@ -239,9 +296,7 @@ function getEvent(name, loc, starthr, endhr, qtrDetails) {
 		},
 		location: loc,
 		// Repeat MWF till end of quarter
-		recurrence: [
-		recurrenceInfo
-		]
+		recurrence: [ recurrenceInfo ]
 	};
 }
 

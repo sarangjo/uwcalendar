@@ -1,10 +1,4 @@
-uwgooglecal/php/auth
-uwgooglecal/php/vendor
-
-uwgooglecal/node-old/node_modules
-
-uwgooglecal/node-app/node_modules
-uwgooglecal/node-app/bin
-uwgooglecal/node-app/data
-uwgooglecal/node-app/npm-debug.log
-uwgooglecal/node-app/credentials/
+uwcalendar/node-app/node_modules
+uwcalendar/node-app/bin
+uwcalendar/node-app/data
+uwcalendar/node-app/credentials/

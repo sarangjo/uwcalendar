@@ -4,6 +4,7 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var session = require('express-session');
 
 var mongo = require('mongodb');
 var monk = require('monk');
@@ -25,6 +26,9 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+// TODO: Make more secure
+app.use(session({secret: '1234567890QWERTY', resave: true, saveUninitialized: true}));
+
 
 // Attach the database to every request
 app.use(function(req, res, next) {

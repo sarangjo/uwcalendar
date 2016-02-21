@@ -3,7 +3,7 @@ extends layout
 block content
   h1= title
   p
-    b Add a new classes:
+    b Add a new class:
   form#formAddClass(name="addclass",method="post",action="/addclass")
     select#inputQuarter(name="classqtr")
       option(value="wi16") Winter 2016
@@ -21,13 +21,13 @@ block content
       -val= 1
       tr
         td
-          input#inputClassName(type="text",placeholder="Class Name",name="classname#{val}",value="Sidd")
+          input#inputClassName(type="text",placeholder="Class Name",name="classname#{val}",value="Sidd",required)
         td
-          input#inputClassLocation(type="text",placeholder="Room Number",name="classlocation#{val}",value="CSE003")
+          input#inputClassLocation(type="text",placeholder="Room Number",name="classlocation#{val}",value="CSE003",required)
         td
-          input#inputClassStart(type="time",name="classstart#{val}",value="09:30") 
+          input#inputClassStart(type="time",name="classstart#{val}",value="09:30",required)
         td
-          input#inputClassEnd(type="time",name="classend#{val}",value="10:20")
+          input#inputClassEnd(type="time",name="classend#{val}",value="10:20",required)
         td
           input#inputClassDays(type="checkbox",name="monday")
           | M
@@ -40,3 +40,5 @@ block content
           input#inputClassDays(type="checkbox",name="friday")
           | F
     button#btnSubmit(type="submit") Add
+  p #{error}
+  h2 #{message}

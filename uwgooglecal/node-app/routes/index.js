@@ -128,8 +128,12 @@ router.get('/classes', function(req, res) {
 		res.redirect('/login');
 		return;
 	}
+	var params = {};
+	params.error = req.session.error;
+	params.message = req.session.message;
+
 	//listEvents(req, res, oauth2Client, renderClasses);
-	renderClasses(req, res, {});
+	renderClasses(req, res, params);
 });
 
 // Lists events in the console, and one on the page
@@ -178,51 +182,86 @@ function renderClasses(req, res, params) {
 
 /* POST addclass page. Adds new event and redirects to /classes page. */
 router.post('/addclass', function(req, res) {
-	var cl = "1";
+	// Retrieve information from body
+	var cl = 1;  // TODO: make better
 
-	console.log("Adding class:");
-	console.log(req.body);
-
-	var name = req.body["classname" + cl];
-	var loc = req.body["classlocation" + cl];
+	// 1. First, error-prone information
 	var start = req.body["classstart" + cl];
 	var end = req.body["classend" + cl];
 
+	var timesOK = verifyTimes(start,end);
+
+	// Parse days string
 	var days = parseDays(req.body);
-	console.log("days: " + days);
-	
-	/*var endhr = starthr+1;
-	// 0-padding
-	starthr = ((starthr < 10) ? ("0" + starthr) : starthr);*/
-	
-	var qtr = req.body.classqtr;
-	
-	// Recurrence info
+
+	// ERROR CHECK
+	req.session.error = "";
+	if (!timesOK || days == "") {
+		if (days == "") {
+			req.session.error += "Select at least 1 day.";
+		}
+		if (!timesOK) {
+			req.session.error += "\nInvalid times.";
+		}
+		res.redirect('/classes');
+		return;
+	}
+
+	// 2. Error-free information
+	// TODO: Add to session?
 	fs.readFile(QTR_DETAILS, function(err, content) {
 		if (err) {
 			console.log('Error loading quarter info: ' + err);
 			return;
 		}
 
-		var event = getEvent(name, loc, start, end, JSON.parse(content)[qtr], days);
+		var addedClass = {
+			summary: req.body["classname" + cl],
+			location: req.body["classlocation" + cl],
+		};
+
+		// RECURRENCE DETAILS
+		var qtrDetails = JSON.parse(content)[req.body.classqtr];
+		var enddate = (qtrDetails.end).replace(new RegExp("-", 'g'), "");
+		addedClass.recurrence = [('RRULE:FREQ=WEEKLY;UNTIL=' + enddate + 'T115959Z;WKST=SU;BYDAY=' + days)];
+
+		// Expand start/end time to include full date
+		start = qtrDetails.start + "T" + start + ":00" + TIMEZONE;
+		end = start.substring(0, 11) + end + start.substring(16);
+		addedClass.start = { dateTime: start, timeZone: 'America/Los_Angeles' };
+		addedClass.end =  { dateTime: end, timeZone: 'America/Los_Angeles' };
 
 		var calendar = google.calendar('v3');
 
+		// Insert the class
 		calendar.events.insert({
 			auth: oauth2Client,
 			calendarId: 'primary',
-			resource: event
+			resource: addedClass
 		}, function(err, event) {
 			if (err) {
 				console.log('There was an error contacting the Calendar service: ' + err);
+				req.session.error = err;
+				req.session.message = "";
 			} else {
-				console.log("Event logged! Event info:");
-				console.log(event);
+				console.log("Class added!");
+				req.session.message = "Class added!";
 			}
 			res.redirect('classes');
 		});
 	});
 });
+
+// Verifies that start is before end
+// Format 09:30, 21:30
+function verifyTimes(start, end) {
+	var starthr = parseInt(start.substring(0,2));
+	var endhr = parseInt(end.substring(0,2));
+	if (starthr > endhr) return false;
+	else if (starthr < endhr) return true;
+	else
+		return (parseInt(start.substring(3))) < (parseInt(end.substring(3)));
+}
 
 // Parses out the days string from the request body
 function parseDays(reqBody) {
@@ -234,70 +273,27 @@ function parseDays(reqBody) {
 		days += "MO";
 	}
 	if (reqBody["tuesday"]) {
-		if (!start)
-			days += ",";
-		else 
-			start = false;
+		if (!start) days += ",";
+		else start = false;
 		days += "TU";
 	}
 	if (reqBody["wednesday"]) {
-		if (!start)
-			days += ",";
-		else 
-			start = false;
+		if (!start)	days += ",";
+		else start = false;
 		days += "WE";
 	}
 	if (reqBody["thursday"]) {
-		if (!start)
-			days += ",";
-		else 
-			start = false;
+		if (!start) days += ",";
+		else start = false;
 		days += "TH";
 	}
 	if (reqBody["friday"]) {
-		if (!start)
-			days += ",";
-		else 
-			start = false;
+		if (!start) days += ",";
+		else start = false;
 		days += "FR";
 	}
 
 	return days;
-}
-
-// Creates a Google Calendar event resource object.
-function getEvent(name, loc, start, end, qtrDetails, days) {
-	// Recurrence details
-	var startdate = qtrDetails.start; //2016-xx-xx
-
-	var start = startdate + "T" + start + ":00" + TIMEZONE;
-	var end = start.substring(0, 11) + end + start.substring(16);
-
-	// Removes all the "-"s to conform to the format needed
-	var enddate = (qtrDetails.end).replace(new RegExp("-", 'g'), "");
-
-	var recurrenceInfo = 'RRULE:FREQ=WEEKLY;UNTIL=' + enddate + 'T115959Z;WKST=SU;BYDAY=' + days;
-
-	console.log("recurrence info: " + recurrenceInfo);
-
-	//recurrenceInfo += ((days & 1) ? "MO" : "");
-	//if (start)
-
-	//MO,WE,FR'
-
-	return {
-		summary: name,
-		start: {
-			dateTime: start,
-			timeZone: 'America/Los_Angeles',
-		}, end: {
-			dateTime: end,
-			timeZone: 'America/Los_Angeles',
-		},
-		location: loc,
-		// Repeat MWF till end of quarter
-		recurrence: [ recurrenceInfo ]
-	};
 }
 
 /* GET logout page. Deletes OAuth2 token. */

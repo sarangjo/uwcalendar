@@ -17,17 +17,17 @@ block content
         th Start
         th End
         th Days
-      // each val in [1,2,3]
-      -val= 1
+      // each val in [0,1,2,3]
+      -val= 0
       tr
         td
-          input#inputClassName(type="text",placeholder="Class Name",name="classname#{val}",value="Sidd",required)
+          input#inputClassName(type="text",placeholder="Class Name",name="classname#{val}")
         td
-          input#inputClassLocation(type="text",placeholder="Room Number",name="classlocation#{val}",value="CSE003",required)
+          input#inputClassLocation(type="text",placeholder="Room Number",name="classlocation#{val}")
         td
-          input#inputClassStart(type="time",name="classstart#{val}",value="09:30",required)
+          input#inputClassStart(type="time",name="classstart#{val}")
         td
-          input#inputClassEnd(type="time",name="classend#{val}",value="10:20",required)
+          input#inputClassEnd(type="time",name="classend#{val}")
         td
           input#inputClassDays(type="checkbox",name="monday")
           | M
@@ -40,5 +40,7 @@ block content
           input#inputClassDays(type="checkbox",name="friday")
           | F
     button#btnSubmit(type="submit") Add
-  p #{error}
+  if error
+    each err in error
+      p= err
   h2 #{message}

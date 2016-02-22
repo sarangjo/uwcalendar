@@ -17,7 +17,7 @@ var QTR_DETAILS = 'details/qtr-details.json';
 // Authorization client
 var oauth2Client = null;
 
-//////// HELPERS ////////
+//////////////// HELPERS ////////////////
 
 // Standard String format: 2016-01-28T17:00:00-07:00
 function dateToString(date) {
@@ -25,7 +25,7 @@ function dateToString(date) {
 	return str + TIMEZONE;
 }
 
-/////////////////////////
+/////////////////////////////////////////
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -182,85 +182,110 @@ function renderClasses(req, res, params) {
 
 /* POST addclass page. Adds new event and redirects to /classes page. */
 router.post('/addclass', function(req, res) {
-	// Retrieve information from body
-	var cl = 1;  // TODO: make better
+	var index = 0;
 
-	// 1. First, error-prone information
-	var start = req.body["classstart" + cl];
-	var end = req.body["classend" + cl];
-
-	var timesOK = verifyTimes(start,end);
-
-	// Parse days string
-	var days = parseDays(req.body);
-
-	// ERROR CHECK
-	req.session.error = "";
-	if (!timesOK || days == "") {
-		if (days == "") {
-			req.session.error += "Select at least 1 day.";
-		}
-		if (!timesOK) {
-			req.session.error += "\nInvalid times.";
-		}
+	// 1. Error-checking
+	if (hasErrors(req, 0)) {
+		// TODO: pass original values of input elements back to form
 		res.redirect('/classes');
 		return;
 	}
 
 	// 2. Error-free information
 	// TODO: Add to session?
-	fs.readFile(QTR_DETAILS, function(err, content) {
+	fs.readFile(QTR_DETAILS, function(err, qtrDetailsFileContent) {
 		if (err) {
 			console.log('Error loading quarter info: ' + err);
 			return;
 		}
-
-		var addedClass = {
-			summary: req.body["classname" + cl],
-			location: req.body["classlocation" + cl],
-		};
-
-		// RECURRENCE DETAILS
-		var qtrDetails = JSON.parse(content)[req.body.classqtr];
-		var enddate = (qtrDetails.end).replace(new RegExp("-", 'g'), "");
-		addedClass.recurrence = [('RRULE:FREQ=WEEKLY;UNTIL=' + enddate + 'T115959Z;WKST=SU;BYDAY=' + days)];
-
-		// Expand start/end time to include full date
-		start = qtrDetails.start + "T" + start + ":00" + TIMEZONE;
-		end = start.substring(0, 11) + end + start.substring(16);
-		addedClass.start = { dateTime: start, timeZone: 'America/Los_Angeles' };
-		addedClass.end =  { dateTime: end, timeZone: 'America/Los_Angeles' };
-
-		var calendar = google.calendar('v3');
-
-		// Insert the class
-		calendar.events.insert({
-			auth: oauth2Client,
-			calendarId: 'primary',
-			resource: addedClass
-		}, function(err, event) {
-			if (err) {
-				console.log('There was an error contacting the Calendar service: ' + err);
-				req.session.error = err;
-				req.session.message = "";
-			} else {
-				console.log("Class added!");
-				req.session.message = "Class added!";
-			}
-			res.redirect('classes');
-		});
+		createAndAddClass(qtrDetailsFileContent, req.body, index);
 	});
 });
 
+/**
+ * Creates and adds a new class to the calendar.
+ * 
+ * @param qtrDetailsFileContent 
+ *		content from the file
+ * @param body
+ * 		req.body
+ * @param index
+ *		index of the class
+ */
+function createAndAddClass(qtrDetailsFileContent, body, index) {
+	var addedClass = {
+		summary: body["classname" + index],
+		location: body["classlocation" + index],
+	};
+
+	// RECURRENCE DETAILS
+	var qtrDetails = JSON.parse(qtrDetailsFileContent)[body.classqtr];
+	var enddate = (qtrDetails.end).replace(new RegExp("-", 'g'), "");
+	var days = parseDays(body);
+	addedClass.recurrence = [('RRULE:FREQ=WEEKLY;UNTIL=' + enddate + 'T115959Z;WKST=SU;BYDAY=' + days)];
+
+	// Expand start/end time to include full date
+	start = qtrDetails.start + "T" + body["classstart" + index] + ":00" + TIMEZONE;
+	end = start.substring(0, 11) + body["classend" + index] + start.substring(16);
+	addedClass.start = { dateTime: start, timeZone: 'America/Los_Angeles' };
+	addedClass.end =  { dateTime: end, timeZone: 'America/Los_Angeles' };
+
+	var calendar = google.calendar('v3');
+
+	// Insert the class
+	calendar.events.insert({
+		auth: oauth2Client,
+		calendarId: 'primary',
+		resource: addedClass
+	}, function(err, event) {
+		if (err) {
+			console.log('There was an error contacting the Calendar service: ' + err);
+			req.session.error = err;
+			req.session.message = "";
+		} else {
+			console.log("Class added!");
+			req.session.message = "Class added!";
+		}
+		res.redirect('classes');
+	});
+}
+
+// index is the index of the class being added, 0-based
+function hasErrors(req, index) {
+	req.session.error = [];
+	
+	if (req.body["classname" + index] == "") {
+		req.session.error.push("Enter a valid class name.");
+	}
+	
+	if (req.body["classlocation" + index] == "") {
+		req.session.error.push("Enter a valid class location.");
+	}
+	
+	var start = req.body["classstart" + index];
+	var end = req.body["classend" + index];
+	var timesOK = timesValid(start,end);
+	if (!timesOK) {
+			req.session.error.push("Enter valid start/end times.");
+	}	
+	
+	var days = parseDays(req.body);
+	if (days == "") {
+		req.session.error.push("Select at least 1 day.");
+	}
+	
+	return (req.session.error.length != 0);
+}
+
 // Verifies that start is before end
 // Format 09:30, 21:30
-function verifyTimes(start, end) {
+function timesValid(start, end) {
+	if (start == '' || end == '') return false;
 	var starthr = parseInt(start.substring(0,2));
 	var endhr = parseInt(end.substring(0,2));
 	if (starthr > endhr) return false;
 	else if (starthr < endhr) return true;
-	else
-		return (parseInt(start.substring(3))) < (parseInt(end.substring(3)));
+	else return (parseInt(start.substring(3))) < (parseInt(end.substring(3)));
 }
 
 // Parses out the days string from the request body
@@ -268,26 +293,26 @@ function parseDays(reqBody) {
 	var start = true;
 	var days = "";
 
-	if (reqBody["monday"]) {
+	if (reqBody.hasOwnProperty("monday")) {
 		start = false;
 		days += "MO";
 	}
-	if (reqBody["tuesday"]) {
+	if (reqBody.hasOwnProperty("tuesday")) {
 		if (!start) days += ",";
 		else start = false;
 		days += "TU";
 	}
-	if (reqBody["wednesday"]) {
+	if (reqBody.hasOwnProperty("wednesday")) {
 		if (!start)	days += ",";
 		else start = false;
 		days += "WE";
 	}
-	if (reqBody["thursday"]) {
+	if (reqBody.hasOwnProperty("thursday")) {
 		if (!start) days += ",";
 		else start = false;
 		days += "TH";
 	}
-	if (reqBody["friday"]) {
+	if (reqBody.hasOwnProperty("friday")) {
 		if (!start) days += ",";
 		else start = false;
 		days += "FR";

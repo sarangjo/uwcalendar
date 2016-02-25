@@ -1,4 +1,4 @@
-uwcalendar/node-app/node_modules
-uwcalendar/node-app/bin
-uwcalendar/node-app/data
-uwcalendar/node-app/credentials/
+node_modules/
+bin/
+data/
+credentials/

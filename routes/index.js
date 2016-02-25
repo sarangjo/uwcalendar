@@ -13,9 +13,11 @@ var TOKEN_PATH = TOKEN_DIR + 'uwgooglecal-cred.json';
 var TIMEZONE = "-08:00";
 
 var QTR_DETAILS = 'details/qtr-details.json';
+var quarterInfo = null;
 
 // Authorization client
 var oauth2Client = null;
+
 
 //////////////// HELPERS ////////////////
 
@@ -132,8 +134,19 @@ router.get('/classes', function(req, res) {
 	params.error = req.session.error;
 	params.message = req.session.message;
 
-	//listEvents(req, res, oauth2Client, renderClasses);
-	renderClasses(req, res, params);
+	// Adding the quarter details object to the session
+	if (quarterInfo == null) {
+		fs.readFile(QTR_DETAILS, function(err, qtrDetailsFileContent) {
+			if (err) {
+				console.log('Error loading quarter info: ' + err);
+				return;
+			}
+			quarterInfo = JSON.parse(qtrDetailsFileContent);
+			renderClasses(req, res, params);
+		});
+	} else {
+		renderClasses(req, res, params);
+	}
 });
 
 // Lists events in the console, and one on the page
@@ -182,25 +195,10 @@ function renderClasses(req, res, params) {
 
 /* POST addclass page. Adds new event and redirects to /classes page. */
 router.post('/addclass', function(req, res) {
-	var index = 0;
-
-	// 1. Error-checking
-	if (hasErrors(req, 0)) {
-		// TODO: pass original values of input elements back to form
-		res.redirect('/classes');
-		return;
-	}
-
-	// 2. Error-free information
-	// TODO: Add to session?
-	fs.readFile(QTR_DETAILS, function(err, qtrDetailsFileContent) {
-		if (err) {
-			console.log('Error loading quarter info: ' + err);
-			return;
-		}
-		createAndAddClass(qtrDetailsFileContent, req.body, index);
-	});
+	addClass(req, res, 0);
 });
+
+var n = 1;
 
 /**
  * Creates and adds a new class to the calendar.
@@ -211,24 +209,26 @@ router.post('/addclass', function(req, res) {
  * 		req.body
  * @param index
  *		index of the class
+ * @param doneCallback
+ * 		the function to call when the last class has been added
  */
-function createAndAddClass(qtrDetailsFileContent, body, index) {
-	var addedClass = {
-		summary: body["classname" + index],
-		location: body["classlocation" + index],
-	};
+function addClass(req, res, index) {
+	// Check to see if all classes have been added
+	if (index >= n) {
+		res.redirect('/classes');
+		return;
+	}
 
-	// RECURRENCE DETAILS
-	var qtrDetails = JSON.parse(qtrDetailsFileContent)[body.classqtr];
-	var enddate = (qtrDetails.end).replace(new RegExp("-", 'g'), "");
-	var days = parseDays(body);
-	addedClass.recurrence = [('RRULE:FREQ=WEEKLY;UNTIL=' + enddate + 'T115959Z;WKST=SU;BYDAY=' + days)];
+	// Error-checking
+	// hasErrors automatically modifies the res session
+	if (hasErrors(req, 0)) {
+		// TODO: pass original values of input elements back to form
+		res.redirect('/classes');
+		return;
+	}
 
-	// Expand start/end time to include full date
-	start = qtrDetails.start + "T" + body["classstart" + index] + ":00" + TIMEZONE;
-	end = start.substring(0, 11) + body["classend" + index] + start.substring(16);
-	addedClass.start = { dateTime: start, timeZone: 'America/Los_Angeles' };
-	addedClass.end =  { dateTime: end, timeZone: 'America/Los_Angeles' };
+	// We are error-free!
+	var addedClass = createClass(req);
 
 	var calendar = google.calendar('v3');
 
@@ -246,14 +246,42 @@ function createAndAddClass(qtrDetailsFileContent, body, index) {
 			console.log("Class added!");
 			req.session.message = "Class added!";
 		}
-		res.redirect('classes');
+		addClass(req, res, index + 1, callback);
 	});
+}
+
+/**
+ * Constructs a class from the request body.
+ */
+function createClass(req) {
+	var addedClass = {
+		summary: req.body["classname" + index],
+		location: req.body["classlocation" + index],
+	};
+
+	// RECURRENCE DETAILS
+	var qtrDetails = quarterInfo[req.body.classqtr];
+	var enddate = (qtrDetails.end).replace(new RegExp("-", 'g'), "");
+	var days = parseDays(req.body);
+	addedClass.recurrence = ['RRULE:FREQ=WEEKLY;UNTIL=' + enddate + 'T115959Z;WKST=SU;BYDAY=' + days];
+
+	// Expand start/end time to include full date
+	start = qtrDetails.start + "T" + req.body["classstart" + index] + ":00" + TIMEZONE;
+	end = start.substring(0, 11) + req.body["classend" + index] + start.substring(16);
+	addedClass.start = { dateTime: start, timeZone: 'America/Los_Angeles' };
+	addedClass.end =  { dateTime: end, timeZone: 'America/Los_Angeles' };
+
+	return addedClass;
 }
 
 // index is the index of the class being added, 0-based
 function hasErrors(req, index) {
 	req.session.error = [];
 	
+	if (quarterInfo == null) {
+		req.session.error.push("Internal error. Quarter info invalid.");
+	}
+
 	if (req.body["classname" + index] == "") {
 		req.session.error.push("Enter a valid class name.");
 	}

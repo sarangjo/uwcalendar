@@ -29,6 +29,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // TODO: Make more secure
 app.use(session({secret: '1234567890QWERTY', resave: true, saveUninitialized: true}));
 
+app.set('port', (process.env.PORT || 5000));
 
 // Attach the database to every request
 app.use(function(req, res, next) {
@@ -38,6 +39,11 @@ app.use(function(req, res, next) {
 
 app.use('/', routes);
 app.use('/users', users);
+
+app.listen(app.get('port'), function() {
+  console.log('Node app is running on port', app.get('port'));
+});
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -69,6 +75,5 @@ app.use(function(err, req, res, next) {
     error: {}
   });
 });
-
 
 module.exports = app;

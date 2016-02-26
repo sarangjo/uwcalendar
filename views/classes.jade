@@ -17,28 +17,27 @@ block content
         th Start
         th End
         th Days
-      // each val in [0,1,2,3]
-      -val= 0
-      tr
-        td
-          input#inputClassName(type="text",placeholder="Class Name",name="classname#{val}")
-        td
-          input#inputClassLocation(type="text",placeholder="Room Number",name="classlocation#{val}")
-        td
-          input#inputClassStart(type="time",name="classstart#{val}")
-        td
-          input#inputClassEnd(type="time",name="classend#{val}")
-        td
-          input#inputClassDays(type="checkbox",name="monday")
-          | M
-          input#inputClassDays(type="checkbox",name="tuesday")
-          | T
-          input#inputClassDays(type="checkbox",name="wednesday")
-          | W
-          input#inputClassDays(type="checkbox",name="thursday")
-          | Th
-          input#inputClassDays(type="checkbox",name="friday")
-          | F
+      each val in [0,1]
+        tr
+          td
+            input#inputClassName(type="text",placeholder="Class Name",name="classname#{val}",value="Sidd Time #{val}")
+          td
+            input#inputClassLocation(type="text",placeholder="Room Number",name="classlocation#{val}",value="CSE #{val}69")
+          td
+            input#inputClassStart(type="time",name="classstart#{val}",value="#{val+10}:00")
+          td
+            input#inputClassEnd(type="time",name="classend#{val}",value="#{val+10}:50")
+          td
+            input#inputClassDays(type="checkbox",name="monday",checked="checked")
+            | M
+            input#inputClassDays(type="checkbox",name="tuesday")
+            | T
+            input#inputClassDays(type="checkbox",name="wednesday")
+            | W
+            input#inputClassDays(type="checkbox",name="thursday")
+            | Th
+            input#inputClassDays(type="checkbox",name="friday")
+            | F
     button#btnSubmit(type="submit") Add
   if error
     each err in error

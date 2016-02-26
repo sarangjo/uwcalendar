@@ -198,7 +198,7 @@ router.post('/addclass', function(req, res) {
 	addClass(req, res, 0);
 });
 
-var n = 1;
+var n = 2;
 
 /**
  * Creates and adds a new class to the calendar.
@@ -215,45 +215,45 @@ var n = 1;
 function addClass(req, res, index) {
 	// Check to see if all classes have been added
 	if (index >= n) {
+		console.log("Done adding classes.");
 		res.redirect('/classes');
 		return;
 	}
 
 	// Error-checking
 	// hasErrors automatically modifies the res session
-	if (hasErrors(req, 0)) {
-		// TODO: pass original values of input elements back to form
+	if (hasErrors(req, index)) {
+		// TODO: pass original values of input elements back to HTML form
 		res.redirect('/classes');
 		return;
 	}
 
 	// We are error-free!
-	var addedClass = createClass(req);
-
 	var calendar = google.calendar('v3');
 
 	// Insert the class
 	calendar.events.insert({
 		auth: oauth2Client,
 		calendarId: 'primary',
-		resource: addedClass
+		resource: createClass(req, index)
 	}, function(err, event) {
 		if (err) {
 			console.log('There was an error contacting the Calendar service: ' + err);
 			req.session.error = err;
 			req.session.message = "";
 		} else {
-			console.log("Class added!");
-			req.session.message = "Class added!";
+			var message = "Class #" + index + " added!";
+			console.log(message);
+			req.session.message = message;
 		}
-		addClass(req, res, index + 1, callback);
+		addClass(req, res, index + 1);
 	});
 }
 
 /**
  * Constructs a class from the request body.
  */
-function createClass(req) {
+function createClass(req, index) {
 	var addedClass = {
 		summary: req.body["classname" + index],
 		location: req.body["classlocation" + index],

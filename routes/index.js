@@ -18,6 +18,8 @@ var quarterInfo = null;
 // Authorization client
 var oauth2Client = null;
 
+// Number of classes
+var nOfClasses = 4;
 
 //////////////// HELPERS ////////////////
 
@@ -130,12 +132,14 @@ router.get('/classes', function(req, res) {
 		res.redirect('/login');
 		return;
 	}
+
+	// Setting up parameters to send to the Jade page
 	var params = {};
 	params.error = req.session.error;
 	params.message = req.session.message;
 
-	console.log("error: ");
-	console.log(params.error);
+	// Number of classes to allow
+	params.nOfClasses = nOfClasses;
 
 	// Adding the quarter details object to the session
 	if (quarterInfo == null) {
@@ -152,7 +156,9 @@ router.get('/classes', function(req, res) {
 	}
 });
 
-// Lists events in the console, and one on the page
+/**
+ * Lists events in the console, and one on the page
+ */
 function listEvents(req, res, auth, callback) {
 	var calendar = google.calendar('v3');
 	var minDate = dateToString(new Date(2016, 1, 17, 0, 0, 0));
@@ -201,45 +207,48 @@ router.post('/addclass', function(req, res) {
 	req.session.message = [];
 
 	// Error-checking
-	req.session.error = [];
-	// hasErrors automatically modifies the res session
-	var index = 0;
-	while (index < n) {
-		if (!hasErrors(req, index)) {
-			console.log("No input errors with class #" + index);
-		}
-		index++;
-	}
+	req.session.error = {};
 
-	if (req.session.error.length > 0) {
+	for (var i = 0; i < n; i++) {
+		// Do we care about this class?
+		if (req.body.hasOwnProperty("classadd" + i)) {
+			// Check for errors, in the process updating req
+			checkErrors(req, i);
+		} else {
+			console.log("Skipping class #" + i);
+		}
+	}
+	if (Object.keys(req.session.error).length > 0) {
 		// TODO: pass original values of input elements back to HTML form
 		res.redirect('/classes');
 		return;
 	}
 
 	// We are error-free!
-	addClass(req, res, 0);
+	saveClass(req, res, 0);
 });
 
-var n = 2;
-
 /**
- * Creates and adds a new class to the calendar.
+ * Saves a new class to the calendar.
  * 
- * @param qtrDetailsFileContent 
- *		content from the file
- * @param body
- * 		req.body
- * @param index
+ * @param {Object} req
+ *		the request object
+ * @param {Object} res
+ *		the result object
+ * @param {Number} index
  *		index of the class
- * @param doneCallback
- * 		the function to call when the last class has been added
  */
-function addClass(req, res, index) {
+function saveClass(req, res, index) {
 	// Check to see if all classes have been added
 	if (index >= n) {
 		console.log("Done adding classes.");
 		res.redirect('/classes');
+		return;
+	}
+
+	// Classes to be skipped
+	if (!(req.body.hasOwnProperty("classadd" + index))) {
+		saveClass(req, res, index + 1);
 		return;
 	}
 
@@ -251,21 +260,23 @@ function addClass(req, res, index) {
 		calendarId: 'primary',
 		resource: createClass(req, index)
 	}, function(err, event) {
+		// Error and message addition to the req object
 		if (err) {
 			console.log('There was an error contacting the Calendar service: ' + err);
-			req.session.error = err;
-			//req.session.message = "";
+			req.session.error[index + ""] = err;
 		} else {
 			var message = "Class #" + index + " added!";
 			console.log(message);
 			req.session.message.push(message);
 		}
-		addClass(req, res, index + 1);
+		// Continues adding classes with the next index
+		saveClass(req, res, index + 1);
 	});
 }
 
 /**
  * Constructs a class from the request body.
+ * @return {Object} the created class
  */
 function createClass(req, index) {
 	var addedClass = {
@@ -288,8 +299,10 @@ function createClass(req, index) {
 	return addedClass;
 }
 
-// index is the index of the class being added, 0-based
-function hasErrors(req, index) {
+/**
+ * @param {Number} index the index of the class being added, 0-based
+ */
+function checkErrors(req, index) {
 	myErrors = [];
 
 	if (quarterInfo == null) {
@@ -317,7 +330,7 @@ function hasErrors(req, index) {
 	}
 
 	if (myErrors.length != 0) {
-		req.session.error.push(myErrors);
+		req.session.error[index + ""] = myErrors;
 		return true;
 	} else {
 		return false;

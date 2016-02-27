@@ -11,13 +11,16 @@ block content
     br
     table
       tr
+        th Add?
         th Name
         th Room
         th Start
         th End
         th Days
-      each val in [0,1]
+      - for (var val = 0; val < nOfClasses; val++)
         tr
+          td
+            input#inputClassAdd(type="checkbox",name="classadd#{val}",checked="checked")
           td
             input#inputClassName(type="text",placeholder="Class Name",name="classname#{val}",value="Sidd Time #{val}")
           td
@@ -40,9 +43,9 @@ block content
     button#btnSubmit(type="submit") Add
   if error
     each errors, index in error
-      h4 Errors in Class #{index}
+      h4 Errors in Class #{index}:
       each err in errors
-        p= err
+        p - #{err}
   if message
     each mess in message
       h3= mess

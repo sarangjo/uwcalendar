@@ -2,8 +2,7 @@ extends layout
 
 block content
   h1= title
-  p
-    b Add a new class:
+  h2 Add a new class:
   form#formAddClass(name="addclass",method="post",action="/addclass")
     select#inputQuarter(name="classqtr")
       option(value="wi16") Winter 2016
@@ -28,18 +27,22 @@ block content
           td
             input#inputClassEnd(type="time",name="classend#{val}",value="#{val+10}:50")
           td
-            input#inputClassDays(type="checkbox",name="monday",checked="checked")
+            input#inputClassDays(type="checkbox",name="monday#{val}")
             | M
-            input#inputClassDays(type="checkbox",name="tuesday")
+            input#inputClassDays(type="checkbox",name="tuesday#{val}")
             | T
-            input#inputClassDays(type="checkbox",name="wednesday")
+            input#inputClassDays(type="checkbox",name="wednesday#{val}")
             | W
-            input#inputClassDays(type="checkbox",name="thursday")
+            input#inputClassDays(type="checkbox",name="thursday#{val}")
             | Th
-            input#inputClassDays(type="checkbox",name="friday")
+            input#inputClassDays(type="checkbox",name="friday#{val}")
             | F
     button#btnSubmit(type="submit") Add
   if error
-    each err in error
-      p= err
-  h2 #{message}
+    each errors, index in error
+      h4 Errors in Class #{index}
+      each err in errors
+        p= err
+  if message
+    each mess in message
+      h3= mess

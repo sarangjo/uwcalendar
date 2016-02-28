@@ -1,0 +1,14 @@
+<html lang="en">
+  <head>
+    <% include ../partials/head %>
+  </head>
+
+  <body class="container">
+    <header>
+      <% include ../partials/header %>
+    </header>
+    <h1><%= message %></h1>
+    <h2><%= error.status %></p>
+    <pre><%= error.stack %></pre>
+  </body>
+</html>

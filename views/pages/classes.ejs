@@ -1,0 +1,71 @@
+<html lang="en">
+	<head>
+		<% include ../partials/head %>
+	</head>
+
+	<body class="container">
+    <header>
+      <% include ../partials/header %>
+    </header>
+		<h1><%= title %></h1>
+		<h2>Add a new class:</h2>
+    <form id="formAddClass" name="addclass" method="post" action="/addclass">
+      <select id="inputQuarter" name="classqtr">
+        <option value="wi16">Winter 2016</option>
+        <option value="sp16">Spring 2016</option>
+      </select>
+      <br/>
+      <br/>
+      <table>
+        <tr>
+          <th>Add?</th>
+          <th>Name</th>
+          <th>Room</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Days</th>
+        </tr>
+        <% for (var i = 0; i < nOfClasses; i++) { %>
+          <tr>
+            <td>
+              <input id="inputClassAdd" type="checkbox" name="classadd<%= i %>">
+            </td>
+            <td>
+              <input id="inputClassName" type="text" placeholder="Class Name" name="classname<%= i %>" value="Sidd Time <%= i %>">
+            </td>
+            <td>
+              <input id="inputClassLocation" type="text" placeholder="Room Number" name="classlocation<%= i %>" value="CSE <%= i %>69">
+            </td>
+            <td>
+              <input id="inputClassStart" type="time" name="classstart<%= i %>" value="<%= i+10 %>:00">
+            </td>
+            <td>
+              <input id="inputClassEnd" type="time" name="classend<%= i %>" value="<%= i+10 %>:50">
+            </td>
+            <td>
+              <input id="inputClassDays" type="checkbox" name="monday<%= i %>">M
+              <input id="inputClassDays" type="checkbox" name="tuesday<%= i %>">T
+              <input id="inputClassDays" type="checkbox" name="wednesday<%= i %>">W
+              <input id="inputClassDays" type="checkbox" name="thursday<%= i %>">Th
+              <input id="inputClassDays" type="checkbox" name="friday<%= i %>">F
+            </td>
+          </tr>
+        <% } %>
+      </table>
+      <button id="btnSubmit" type="submit">Add</button>
+    </form>
+    <% if (typeof error != 'undefined') {
+      for (var index in error) { var errors = error[index]; %>
+        <h4>Errors in Class <%= index %>:</h4>
+        <% errors.forEach(function(err) { %>
+          <p><%= err %></p>
+        <% });
+      }
+    }
+    if (typeof message != 'undefined') {
+      for (var mess in message) { %>
+        <h3><%= mess %></h3>
+      <% }
+    } %>
+	</body>
+</html>

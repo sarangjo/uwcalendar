@@ -1,4 +1,4 @@
-var express = require('express');
+/**/var express = require('express');
 var router = express.Router();
 
 var fs = require('fs');
@@ -19,7 +19,7 @@ var quarterInfo = null;
 var oauth2Client = null;
 
 // Number of classes
-var nOfClasses = 4;
+var N_OF_CLASSES = 4;
 
 //////////////// HELPERS ////////////////
 
@@ -33,7 +33,7 @@ function dateToString(date) {
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-	res.render('index', { title: 'UW Google Cal', loggedout: true });
+	res.render('pages/index', { title: 'UW Calendar', loggedout: true });
 });
 
 /* GET login page */
@@ -86,7 +86,7 @@ function checkIfUserAuthorized(res) {
 
 // If the user has not been authorized, renders the login screen with the authorization URL.
 function renderLogin(res, authUrl) {
-	res.render('login', { title: 'Login', auth: authUrl, loggedout: true });
+	res.render('pages/login', { title: 'Login', auth: authUrl, loggedout: true });
 }
 
 /* GET authorized page. This is after retrieving the OAuth2 token. */
@@ -109,7 +109,7 @@ router.get('/authorized', function(req, res) {
 // Render what needs to be rendered if the user was not actually authorized
 function renderFailedAuth(res) {
 	var params = { result: "Failed!", loggedout: true };
-	res.render('authorize', params );
+	res.render('pages/authorize', params );
 }
 
 // Saves the user auth token locally
@@ -137,9 +137,10 @@ router.get('/classes', function(req, res) {
 	var params = {};
 	params.error = req.session.error;
 	params.message = req.session.message;
+	params.oldBody = oldBody;
 
 	// Number of classes to allow
-	params.nOfClasses = nOfClasses;
+	params.nOfClasses = N_OF_CLASSES;
 
 	// Adding the quarter details object to the session
 	if (quarterInfo == null) {
@@ -199,17 +200,22 @@ function listEvents(req, res, auth, callback) {
 
 function renderClasses(req, res, params) {
 	params.title = 'Classes';
-	res.render('classes', params);
+	res.render('pages/classes', params);
 }
+
+var oldBody = {};
 
 /* POST addclass page. Adds new event and redirects to /classes page. */
 router.post('/addclass', function(req, res) {
 	req.session.message = [];
 
+	console.log(req.body);
+	oldBody = req.body;
+
 	// Error-checking
 	req.session.error = {};
 
-	for (var i = 0; i < n; i++) {
+	for (var i = 0; i < N_OF_CLASSES; i++) {
 		// Do we care about this class?
 		if (req.body.hasOwnProperty("classadd" + i)) {
 			// Check for errors, in the process updating req
@@ -240,7 +246,7 @@ router.post('/addclass', function(req, res) {
  */
 function saveClass(req, res, index) {
 	// Check to see if all classes have been added
-	if (index >= n) {
+	if (index >= N_OF_CLASSES) {
 		console.log("Done adding classes.");
 		res.redirect('/classes');
 		return;

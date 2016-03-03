@@ -63,9 +63,9 @@
       }
     }
     if (typeof message != 'undefined') {
-      for (var mess in message) { %>
+      message.forEach(function(mess) { %>
         <h3><%= mess %></h3>
-      <% }
+      <% });
     } %>
 	</body>
 </html>

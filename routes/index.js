@@ -209,6 +209,7 @@ var oldBody = {};
 router.post('/addclass', function(req, res) {
 	req.session.message = [];
 
+	// Save old body back to be passed back again later
 	console.log(req.body);
 	oldBody = req.body;
 

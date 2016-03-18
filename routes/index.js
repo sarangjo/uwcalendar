@@ -32,14 +32,14 @@ function dateToString(date) {
 /////////////////////////////////////////
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
+router.get('/', function (req, res, next) {
 	res.render('pages/index', { title: 'UW Calendar', loggedout: true });
 });
 
-/* GET login page */
-router.get('/login', function(req, res, next) {
+/* GET go page */
+router.get('/go', function (req, res, next) {
 	// Load client secrets from a local file.
-	fs.readFile('client_secret.json', function(err, content) {
+	fs.readFile('client_secret.json', function (err, content) {
 		if (err) {
 			console.log('Error loading client secret file: ' + err);
 			return;
@@ -69,13 +69,13 @@ function setupApp(res, credentials) {
  * If not, prompts user to login.
  */
 function checkIfUserAuthorized(res) {
-	fs.readFile(TOKEN_PATH, function(err, token) {
+	fs.readFile(TOKEN_PATH, function (err, token) {
 		if (err) {
 			var authUrl = oauth2Client.generateAuthUrl({
 				access_type: 'offline',
 				scope: SCOPES
 			});
-			renderLogin(res, authUrl);
+			renderGo(res, authUrl);
 		} else {
 			oauth2Client.credentials = JSON.parse(token);
 			// Jump to post-setup
@@ -85,16 +85,16 @@ function checkIfUserAuthorized(res) {
 }
 
 // If the user has not been authorized, renders the login screen with the authorization URL.
-function renderLogin(res, authUrl) {
-	res.render('pages/login', { title: 'Login', auth: authUrl, loggedout: true });
+function renderGo(res, authUrl) {
+	res.render('pages/go', { title: 'Go', auth: authUrl, loggedout: true });
 }
 
 /* GET authorized page. This is after retrieving the OAuth2 token. */
-router.get('/authorized', function(req, res) {
+router.get('/authorized', function (req, res) {
 	// The auth token is in the "code" GET param
 	var token = req.query.code;
 
-	oauth2Client.getToken(token, function(err, token) {
+	oauth2Client.getToken(token, function (err, token) {
 		if (err) {
 			console.log("Access token error", err);
 			renderFailedAuth(res, false);
@@ -127,9 +127,9 @@ function storeToken(token) {
 }
 
 /* GET classes page. */
-router.get('/classes', function(req, res) {
+router.get('/classes', function (req, res) {
 	if (oauth2Client == null) {
-		res.redirect('/login');
+		res.redirect('/go');
 		return;
 	}
 
@@ -144,7 +144,7 @@ router.get('/classes', function(req, res) {
 
 	// Adding the quarter details object to the session
 	if (quarterInfo == null) {
-		fs.readFile(QTR_DETAILS, function(err, qtrDetailsFileContent) {
+		fs.readFile(QTR_DETAILS, function (err, qtrDetailsFileContent) {
 			if (err) {
 				console.log('Error loading quarter info: ' + err);
 				return;
@@ -174,7 +174,7 @@ function listEvents(req, res, auth, callback) {
 		maxResults: 10,
 		singleEvents: true,
 		orderBy: 'startTime'
-	}, function(err, response) {
+	}, function (err, response) {
 		if (err) {
 			console.log('The API returned an error: ' + err);
 			res.redirect('/');
@@ -206,7 +206,7 @@ function renderClasses(req, res, params) {
 var oldBody = {};
 
 /* POST addclass page. Adds new event and redirects to /classes page. */
-router.post('/addclass', function(req, res) {
+router.post('/addclass', function (req, res) {
 	req.session.message = [];
 
 	// Save old body, to be passed back again as a parameter later
@@ -267,7 +267,7 @@ function saveClass(req, res, index) {
 		auth: oauth2Client,
 		calendarId: 'primary',
 		resource: createClass(req, index)
-	}, function(err, event) {
+	}, function (err, event) {
 		// Error and message addition to the req object
 		if (err) {
 			console.log('There was an error contacting the Calendar service: ' + err);
@@ -390,7 +390,7 @@ function parseDays(reqBody, index) {
 }
 
 /* GET logout page. Deletes OAuth2 token. */
-router.get('/logout', function(req, res) {
+router.get('/logout', function (req, res) {
 	oauth2Client = null;
 
 	// delete authorization token
@@ -399,6 +399,70 @@ router.get('/logout', function(req, res) {
 	console.log("Auth token deleted.");
 
 	res.redirect('/');
+});
+
+/* GET login page */
+router.get('/login', function (req, res, next) {
+	res.render('pages/login', { title: 'Login', loggedout: true });
+});
+
+/* POST login form */
+router.post('/login', function (req, res) {
+	var db = req.db;
+	console.log("Logging in with: " + req.body.email);
+  db.get('usercollection').find( {email: req.body.email}, {}, function (err,results) {
+  	if (err) {
+  		res.redirect('/login');
+  		return;
+  	}
+  	// results should be 1 element long
+  	if (results.length != 1) {
+  		res.redirect('/login');
+  		return;
+  	}
+		var result = results[0];
+		console.log(result);
+  	finishLogin(result);
+  });
+});
+
+function finishLogin(req, res, result) {
+	req.session.user = result;
+	res.redirect('/loggedin');
+}
+
+/* GET loggedin page. */
+router.get('/loggedin', function (req, res) {
+  res.render('pages/loggedin', {
+      user: req.session.user,
+      loggedout: false
+  });
+});
+
+/* GET signup page */
+router.get('/signup', function (req, res, next) {
+	res.render('pages/signup', { title: 'Signup', loggedout: true });
+});
+
+/* POST login form */
+router.post('/signup', function (req, res) {
+	var db = req.db;
+	
+	// check existing email
+
+  var collection = db.get('usercollection');
+
+  collection.insert({
+  	email: req.body.email,
+  	password: req.body.password
+  }, function (err, doc) {
+  	if (err) {
+  		res.send("There was a problem.");
+  	} else {
+  		console.log(doc);
+  		finishLogin(req, res, doc);
+  	}
+  });
 });
 
 module.exports = router;

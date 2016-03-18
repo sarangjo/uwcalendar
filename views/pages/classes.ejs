@@ -12,7 +12,7 @@
     <form id="formAddClass" name="addclass" method="post" action="/addclass">
       <select id="inputQuarter" name="classqtr">
         <option value="wi16">Winter 2016</option>
-        <option value="sp16">Spring 2016</option>
+        <option value="sp16" selected>Spring 2016</option>
       </select>
       <br/>
       <br/>
@@ -28,26 +28,33 @@
         <% for (var i = 0; i < nOfClasses; i++) { %>
           <tr>
             <td>
-              <input id="inputClassAdd" type="checkbox" name="classadd<%= i %>">
+              <input id="inputClassAdd" type="checkbox" name="classadd<%= i %>"
+                value="<%= ((typeof oldBody["classadd" + i] != 'undefined') ? "checked" : "")%>">
             </td>
             <td>
-              <input id="inputClassName" type="text" placeholder="Class Name" name="classname<%= i %>" value="Sidd Time <%= i %>">
+              <input id="inputClassName" type="text" placeholder="Class Name" name="classname<%= i %>"
+                value="<%= (typeof oldBody["classname" + i] != 'undefined') ? (oldBody["classname" + i]) : "" %>">
             </td>
             <td>
-              <input id="inputClassLocation" type="text" placeholder="Room Number" name="classlocation<%= i %>" value="CSE <%= i %>69">
+              <input id="inputClassLocation" type="text" placeholder="Room Number" name="classlocation<%= i %>"
+                value="<%= (typeof oldBody["classlocation" + i] != 'undefined') ? (oldBody["classlocation" + i]) : "" %>">
             </td>
             <td>
-              <input id="inputClassStart" type="time" name="classstart<%= i %>" value="<%= i+10 %>:00">
+              <input id="inputClassStart" type="time" name="classstart<%= i %>"
+                value="<%= (typeof oldBody["classstart" + i] != 'undefined') ? (oldBody["classstart" + i]) : "" %>">
             </td>
             <td>
-              <input id="inputClassEnd" type="time" name="classend<%= i %>" value="<%= i+10 %>:50">
+              <input id="inputClassEnd" type="time" name="classend<%= i %>"
+                value="<%= (typeof oldBody["classend" + i] != 'undefined') ? (oldBody["classend" + i]) : "" %>">
             </td>
             <td>
-              <input id="inputClassDays" type="checkbox" name="monday<%= i %>">M
-              <input id="inputClassDays" type="checkbox" name="tuesday<%= i %>">T
-              <input id="inputClassDays" type="checkbox" name="wednesday<%= i %>">W
-              <input id="inputClassDays" type="checkbox" name="thursday<%= i %>">Th
-              <input id="inputClassDays" type="checkbox" name="friday<%= i %>">F
+              <%
+              var days = ['monday','tuesday','wednesday','thursday','friday'];
+              var letters = ['M', 'T', 'W', 'Th', 'F'];
+              for (var j = 0; j < days.length; j++) {  %>
+                <input id="inputClassDays" type="checkbox" name="<%= days[j] + i %>"
+                  <%= ((typeof oldBody[days[j] + i] != 'undefined') ? "checked" : "") %>><%= letters[j] %>
+              <% } %>
             </td>
           </tr>
         <% } %>

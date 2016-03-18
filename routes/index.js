@@ -1,4 +1,4 @@
-/**/var express = require('express');
+var express = require('express');
 var router = express.Router();
 
 var fs = require('fs');
@@ -10,7 +10,7 @@ var TOKEN_DIR = 'credentials/';
 var TOKEN_PATH = TOKEN_DIR + 'uwgooglecal-cred.json';
 
 // TODO: Make this DST-dependent
-var TIMEZONE = "-08:00";
+var TIMEZONE = "-07:00";
 
 var QTR_DETAILS = 'details/qtr-details.json';
 var quarterInfo = null;
@@ -19,7 +19,7 @@ var quarterInfo = null;
 var oauth2Client = null;
 
 // Number of classes
-var N_OF_CLASSES = 4;
+var N_OF_CLASSES = 8;
 
 //////////////// HELPERS ////////////////
 
@@ -209,8 +209,7 @@ var oldBody = {};
 router.post('/addclass', function(req, res) {
 	req.session.message = [];
 
-	// Save old body back to be passed back again later
-	console.log(req.body);
+	// Save old body, to be passed back again as a parameter later
 	oldBody = req.body;
 
 	// Error-checking
@@ -249,6 +248,8 @@ function saveClass(req, res, index) {
 	// Check to see if all classes have been added
 	if (index >= N_OF_CLASSES) {
 		console.log("Done adding classes.");
+		console.log("Clearing request body.");
+		oldBody = {};
 		res.redirect('/classes');
 		return;
 	}

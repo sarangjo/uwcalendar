@@ -21,6 +21,9 @@ var oauth2Client = null;
 // Number of classes
 var N_OF_CLASSES = 8;
 
+// Current user
+var user = null;
+
 //////////////// HELPERS ////////////////
 
 // Standard String format: 2016-01-28T17:00:00-07:00
@@ -36,8 +39,17 @@ router.get('/', function (req, res, next) {
 	res.render('pages/index', { title: 'UW Calendar', loggedout: true });
 });
 
-/* GET go page */
-router.get('/go', function (req, res, next) {
+/* GET googleauth page */
+router.get('/googleauth', function (req, res, next) {
+	res.render('pages/googleauth', {
+		title: 'Google Auth',
+		auth: req.session.authurl,
+		loggedout: true
+	});
+});
+
+// Setup our app to access the calendar, and continue the workflow.
+function setupApp(req, res, callback) {
 	// Load client secrets from a local file.
 	fs.readFile('client_secret.json', function (err, content) {
 		if (err) {
@@ -45,48 +57,19 @@ router.get('/go', function (req, res, next) {
 			return;
 		}
 		// Setup our client with the loaded credentials.
-		setupApp(res, JSON.parse(content));
-	}); 
-});
+		var credentials = JSON.parse(content);
 
-// Setup a client to access the calendar, and continue the workflow.
-function setupApp(res, credentials) {
-	var clientSecret = credentials.installed.client_secret;
-	var clientId = credentials.installed.client_id;
-	// 0: default page, 1: localhost
-	var redirectUrl = credentials.installed.redirect_uris[1];
-	var auth = new googleAuth();
+		var clientSecret = credentials.installed.client_secret;
+		var clientId = credentials.installed.client_id;
+		// 0: default page, 1: localhost
+		var redirectUrl = credentials.installed.redirect_uris[1];
+		var auth = new googleAuth();
 
-	oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
+		oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
 
-	// Now that the client has been setup, we go on to user auth
-	checkIfUserAuthorized(res);
-}
-
-/**
- * Check if we have previously stored a token for this user.
- * If we have, jumps right to the entry page.
- * If not, prompts user to login.
- */
-function checkIfUserAuthorized(res) {
-	fs.readFile(TOKEN_PATH, function (err, token) {
-		if (err) {
-			var authUrl = oauth2Client.generateAuthUrl({
-				access_type: 'offline',
-				scope: SCOPES
-			});
-			renderGo(res, authUrl);
-		} else {
-			oauth2Client.credentials = JSON.parse(token);
-			// Jump to post-setup
-			res.redirect('classes');
-		}
+		console.log("App set up.");
+		callback(req, res);
 	});
-}
-
-// If the user has not been authorized, renders the login screen with the authorization URL.
-function renderGo(res, authUrl) {
-	res.render('pages/go', { title: 'Go', auth: authUrl, loggedout: true });
 }
 
 /* GET authorized page. This is after retrieving the OAuth2 token. */
@@ -101,7 +84,16 @@ router.get('/authorized', function (req, res) {
 			return;
 		}
 		oauth2Client.credentials = token;
-		storeToken(token);
+		//storeToken(token);
+		
+		// Store in database
+		var db = req.db;
+		var collection = db.get('usercollection');
+		collection.update({email: user.email}, {$set:{googleauth:token}});
+
+		// Store in local user object
+		user.googleauth = token;
+
 		res.redirect('classes');
 	});
 });
@@ -129,11 +121,34 @@ function storeToken(token) {
 /* GET classes page. */
 router.get('/classes', function (req, res) {
 	if (oauth2Client == null) {
-		res.redirect('/go');
+		console.log("App hasn't been setup yet.");
+		setupApp(req, res, setupClasses);
+		return;
+	}
+	setupClasses(req, res);
+});
+
+// Setup for loading the classes page
+function setupClasses(req, res) {
+	// Read in the JSON token from the user
+	// TODO: change from file to db storage
+	var token = user.googleauth;
+	
+	if (typeof token == 'undefined') {
+		console.log("The user has not authorized with Google");
+		var authUrl = oauth2Client.generateAuthUrl({
+			access_type: 'offline',
+			scope: SCOPES
+		});
+		req.session.authurl = authUrl;
+		res.redirect('googleauth');
 		return;
 	}
 
-	// Setting up parameters to send to the Jade page
+	console.log("The user has not authorized with Google");
+	oauth2Client.credentials = token;
+
+	// Setting up parameters to send to the page
 	var params = {};
 	params.error = req.session.error;
 	params.message = req.session.message;
@@ -155,48 +170,8 @@ router.get('/classes', function (req, res) {
 	} else {
 		renderClasses(req, res, params);
 	}
-});
-
-/**
- * Lists events in the console, and one on the page
- */
-function listEvents(req, res, auth, callback) {
-	var calendar = google.calendar('v3');
-	var minDate = dateToString(new Date(2016, 1, 17, 0, 0, 0));
-	var maxDate = dateToString(new Date(2016, 1, 17, 11, 59, 59));
-
-	// List the next 10 events in the primary calendar.
-	calendar.events.list({
-		auth: auth,
-		calendarId: 'primary',
-		timeMin: minDate,
-		timeMax: maxDate,
-		maxResults: 10,
-		singleEvents: true,
-		orderBy: 'startTime'
-	}, function (err, response) {
-		if (err) {
-			console.log('The API returned an error: ' + err);
-			res.redirect('/');
-		}
-		var events = response.items;
-		var result = {};
-		if (events.length == 0) {
-			console.log('No upcoming events found.');
-		} else {
-			console.log('Upcoming 10 events:');
-			for (var i = 0; i < events.length; i++) {
-				var event = events[i];
-				var start = event.start.dateTime || event.start.date;
-				console.log('%s - %s', start, event.summary);
-			}
-			var event = events[0];
-			result.eventsummary = event.summary;
-			result.eventdate = (event.start.dateTime || event.start.date);
-		}
-		callback(req, res, result);
-	});
 }
+
 
 function renderClasses(req, res, params) {
 	params.title = 'Classes';
@@ -422,18 +397,21 @@ router.post('/login', function (req, res) {
   	}
 		var result = results[0];
 		console.log(result);
-  	finishLogin(result);
+  	finishLogin(req, res, result);
   });
 });
 
+// Finishes up logging in with the resulting user, saving it to the
+// `user` variable
 function finishLogin(req, res, result) {
 	req.session.user = result;
-	res.redirect('/loggedin');
+	user = result;
+	res.redirect('/home');
 }
 
-/* GET loggedin page. */
-router.get('/loggedin', function (req, res) {
-  res.render('pages/loggedin', {
+/* GET home page. */
+router.get('/home', function (req, res) {
+  res.render('pages/home', {
       user: req.session.user,
       loggedout: false
   });
@@ -448,7 +426,7 @@ router.get('/signup', function (req, res, next) {
 router.post('/signup', function (req, res) {
 	var db = req.db;
 	
-	// check existing email
+	// TODO: check existing email
 
   var collection = db.get('usercollection');
 
@@ -459,10 +437,54 @@ router.post('/signup', function (req, res) {
   	if (err) {
   		res.send("There was a problem.");
   	} else {
+  		console.log("User signed up!");
   		console.log(doc);
   		finishLogin(req, res, doc);
   	}
   });
 });
+
+///////// OLD FUNCTIONS ///////////
+
+/**
+ * Lists events in the console, and one on the page
+ */
+function listEvents(req, res, auth, callback) {
+	var calendar = google.calendar('v3');
+	var minDate = dateToString(new Date(2016, 1, 17, 0, 0, 0));
+	var maxDate = dateToString(new Date(2016, 1, 17, 11, 59, 59));
+
+	// List the next 10 events in the primary calendar.
+	calendar.events.list({
+		auth: auth,
+		calendarId: 'primary',
+		timeMin: minDate,
+		timeMax: maxDate,
+		maxResults: 10,
+		singleEvents: true,
+		orderBy: 'startTime'
+	}, function (err, response) {
+		if (err) {
+			console.log('The API returned an error: ' + err);
+			res.redirect('/');
+		}
+		var events = response.items;
+		var result = {};
+		if (events.length == 0) {
+			console.log('No upcoming events found.');
+		} else {
+			console.log('Upcoming 10 events:');
+			for (var i = 0; i < events.length; i++) {
+				var event = events[i];
+				var start = event.start.dateTime || event.start.date;
+				console.log('%s - %s', start, event.summary);
+			}
+			var event = events[0];
+			result.eventsummary = event.summary;
+			result.eventdate = (event.start.dateTime || event.start.date);
+		}
+		callback(req, res, result);
+	});
+}
 
 module.exports = router;

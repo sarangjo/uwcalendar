@@ -41,15 +41,18 @@ router.get('/', function (req, res, next) {
 
 /* GET googleauth page */
 router.get('/googleauth', function (req, res, next) {
+	var authUrl = oauth2Client.generateAuthUrl({access_type: 'offline',scope: SCOPES});
+	console.log("Authorization URL generated.");
+
 	res.render('pages/googleauth', {
 		title: 'Google Auth',
-		auth: req.session.authurl,
+		auth: authUrl,
 		loggedout: true
 	});
 });
 
 // Setup our app to access the calendar, and continue the workflow.
-function setupApp(req, res, callback) {
+function setupAppForGoogle(req, res, callback) {
 	// Load client secrets from a local file.
 	fs.readFile('client_secret.json', function (err, content) {
 		if (err) {
@@ -67,7 +70,7 @@ function setupApp(req, res, callback) {
 
 		oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
 
-		console.log("App set up.");
+		console.log("App has been set up.");
 		callback(req, res);
 	});
 }
@@ -84,7 +87,6 @@ router.get('/authorized', function (req, res) {
 			return;
 		}
 		oauth2Client.credentials = token;
-		//storeToken(token);
 		
 		// Store in database
 		var db = req.db;
@@ -104,48 +106,23 @@ function renderFailedAuth(res) {
 	res.render('pages/authorize', params );
 }
 
-// Saves the user auth token locally
-// TODO: save in database?
-function storeToken(token) {
-	try {
-		fs.mkdirSync(TOKEN_DIR);
-	} catch (err) {
-		if (err.code != 'EEXIST') {
-			throw err;
-		}
-	}
-	fs.writeFile(TOKEN_PATH, JSON.stringify(token));
-	console.log('Token stored to ' + TOKEN_PATH);
-}
-
 /* GET classes page. */
 router.get('/classes', function (req, res) {
-	if (oauth2Client == null) {
-		console.log("App hasn't been setup yet.");
-		setupApp(req, res, setupClasses);
-		return;
-	}
 	setupClasses(req, res);
 });
 
 // Setup for loading the classes page
 function setupClasses(req, res) {
 	// Read in the JSON token from the user
-	// TODO: change from file to db storage
 	var token = user.googleauth;
 	
 	if (typeof token == 'undefined') {
-		console.log("The user has not authorized with Google");
-		var authUrl = oauth2Client.generateAuthUrl({
-			access_type: 'offline',
-			scope: SCOPES
-		});
-		req.session.authurl = authUrl;
+		console.log("The user has not authorized with Google.");
 		res.redirect('googleauth');
 		return;
 	}
 
-	console.log("The user has not authorized with Google");
+	console.log("The user has authorized with Google.");
 	oauth2Client.credentials = token;
 
 	// Setting up parameters to send to the page
@@ -172,7 +149,9 @@ function setupClasses(req, res) {
 	}
 }
 
-
+/** 
+ * Renders the classes given a params object.
+ */
 function renderClasses(req, res, params) {
 	params.title = 'Classes';
 	res.render('pages/classes', params);
@@ -183,9 +162,6 @@ var oldBody = {};
 /* POST addclass page. Adds new event and redirects to /classes page. */
 router.post('/addclass', function (req, res) {
 	req.session.message = [];
-
-	// Save old body, to be passed back again as a parameter later
-	oldBody = req.body;
 
 	// Error-checking
 	req.session.error = {};
@@ -199,14 +175,34 @@ router.post('/addclass', function (req, res) {
 			console.log("Skipping class #" + i);
 		}
 	}
+
 	if (Object.keys(req.session.error).length > 0) {
-		// TODO: pass original values of input elements back to HTML form
+		// Save old body, to be passed back again as a parameter later
+		oldBody = req.body;
 		res.redirect('/classes');
 		return;
 	}
 
 	// We are error-free!
-	saveClass(req, res, 0);
+	// Update our local copy of the user
+	req.db.get('usercollection').find( {email: user.email}, {}, function (err,results) {
+  	if (err) {
+  		console.log("Couldn't find provided email.");
+  		res.redirect('/login');
+  		return;
+  	}
+  	// results should be 1 element long
+  	if (results.length != 1) {
+  		console.log("Internal db error: more than 1 user.");
+  		res.redirect('/login');
+  		return;
+  	}
+
+		user = results[0];
+
+		// Proceed with saving classes!
+		saveClass(req, res, 0);
+	});
 });
 
 /**
@@ -229,39 +225,81 @@ function saveClass(req, res, index) {
 		return;
 	}
 
-	// Classes to be skipped
+	// Classes to be skipped, i.e. as the kids call it these days "tampa'd"
 	if (!(req.body.hasOwnProperty("classadd" + index))) {
 		saveClass(req, res, index + 1);
 		return;
 	}
 
-	var calendar = google.calendar('v3');
+	// Insert the class into the database
+	if (!user.hasOwnProperty("schedule"))
+		user.schedule = {};
+	if (!user.schedule.hasOwnProperty(req.body.classqtr))
+		user.schedule[req.body.classqtr] = [];
+	user.schedule[req.body.classqtr].push(createDbClass(req, index));
 
-	// Insert the class
-	calendar.events.insert({
+	req.db.get('usercollection').update({email: user.email}, {$set:{schedule:user.schedule}});
+
+	// Insert the class into the Google calendar
+	google.calendar('v3').events.insert({
 		auth: oauth2Client,
 		calendarId: 'primary',
-		resource: createClass(req, index)
+		resource: createGoogleClass(req, index)
 	}, function (err, event) {
 		// Error and message addition to the req object
 		if (err) {
 			console.log('There was an error contacting the Calendar service: ' + err);
 			req.session.error[index + ""] = err;
+			// Abort!
+			res.redirect('/classes');
 		} else {
 			var message = "Class #" + index + " added!";
 			console.log(message);
 			req.session.message.push(message);
+			// Continues adding classes with the next index
+			saveClass(req, res, index + 1);
 		}
-		// Continues adding classes with the next index
-		saveClass(req, res, index + 1);
 	});
+}
+
+var dbDaysMap = {
+	monday: 16, tuesday: 8, wednesday: 4, thursday: 2, friday: 1
+};
+
+/**
+ * Creates a db class to be added to the database.
+ */
+function createDbClass(req, index) {
+	var days = 0;
+
+	// Go through and compile the bitwise vector
+	for (var day in dbDaysMap) {
+	  if (dbDaysMap.hasOwnProperty(day)) {
+	  	if (req.body.hasOwnProperty(day + index)) {
+				days = days | dbDaysMap[day];
+			}
+	  }
+	}
+
+	var dbClass = {
+		name: req.body["classname" + index],
+		location: req.body["classlocation" + index],
+		days: days,
+		start: req.body["classstart" + index],
+		end: req.body["classend" + index]
+	};
+
+	console.log(dbClass);
+
+	return dbClass;
 }
 
 /**
  * Constructs a class from the request body.
+ * 
  * @return {Object} the created class
  */
-function createClass(req, index) {
+function createGoogleClass(req, index) {
 	var addedClass = {
 		summary: req.body["classname" + index],
 		location: req.body["classlocation" + index],
@@ -283,10 +321,12 @@ function createClass(req, index) {
 }
 
 /**
+ * Returns whether the request contents have an error.
+ * 
  * @param {Number} index the index of the class being added, 0-based
  */
 function checkErrors(req, index) {
-	myErrors = [];
+	var myErrors = [];
 
 	if (quarterInfo == null) {
 		myErrors.push("Internal error. Quarter info invalid.");
@@ -320,8 +360,11 @@ function checkErrors(req, index) {
 	}
 }
 
-// Verifies that start is before end
-// Format 09:30, 21:30
+/**
+ * Verifies that start is before end
+ * Format 09:30, 21:30
+ * @returns {boolean} true if the times are valid
+ */
 function timesValid(start, end) {
 	if (start == '' || end == '') return false;
 	var starthr = parseInt(start.substring(0,2));
@@ -331,7 +374,9 @@ function timesValid(start, end) {
 	else return (parseInt(start.substring(3))) < (parseInt(end.substring(3)));
 }
 
-// Parses out the days string from the request body
+/**
+ * Parses out the days string from the request body
+ */
 function parseDays(reqBody, index) {
 	var start = true;
 	var days = "";
@@ -364,17 +409,39 @@ function parseDays(reqBody, index) {
 	return days;
 }
 
-/* GET logout page. Deletes OAuth2 token. */
+/* GET logout page. */
 router.get('/logout', function (req, res) {
-	oauth2Client = null;
+	// Disassociate the oauth client token from the current user
+	oauth2Client.token = null;
 
 	// delete authorization token
-	fs.unlinkSync(TOKEN_PATH);
+	//fs.unlinkSync(TOKEN_PATH);
+	//console.log("Auth token deleted.");
 
-	console.log("Auth token deleted.");
+	// Remove user from session
+	user = null;
+
+	console.log("Deleted user variable.");
 
 	res.redirect('/');
 });
+
+/* GET home page. */
+router.get('/home', function (req, res) {
+	if (oauth2Client == null) {
+		console.log("App hasn't been setup yet.");
+		setupAppForGoogle(req, res, renderHome);
+		return;
+	}
+	renderHome(req, res);
+});
+
+function renderHome(req, res) {
+	res.render('pages/home', {
+    "user": user,
+    loggedout: false
+  });
+}
 
 /* GET login page */
 router.get('/login', function (req, res, next) {
@@ -387,16 +454,17 @@ router.post('/login', function (req, res) {
 	console.log("Logging in with: " + req.body.email);
   db.get('usercollection').find( {email: req.body.email}, {}, function (err,results) {
   	if (err) {
+  		console.log("Couldn't find provided email.");
   		res.redirect('/login');
   		return;
   	}
   	// results should be 1 element long
   	if (results.length != 1) {
+  		console.log("Internal db error: more than 1 user.");
   		res.redirect('/login');
   		return;
   	}
 		var result = results[0];
-		console.log(result);
   	finishLogin(req, res, result);
   });
 });
@@ -404,18 +472,10 @@ router.post('/login', function (req, res) {
 // Finishes up logging in with the resulting user, saving it to the
 // `user` variable
 function finishLogin(req, res, result) {
-	req.session.user = result;
+	//req.session.user = result;
 	user = result;
 	res.redirect('/home');
 }
-
-/* GET home page. */
-router.get('/home', function (req, res) {
-  res.render('pages/home', {
-      user: req.session.user,
-      loggedout: false
-  });
-});
 
 /* GET signup page */
 router.get('/signup', function (req, res, next) {
@@ -444,7 +504,7 @@ router.post('/signup', function (req, res) {
   });
 });
 
-///////// OLD FUNCTIONS ///////////
+///////// OLD FUNCTIONS /////////
 
 /**
  * Lists events in the console, and one on the page
@@ -486,5 +546,22 @@ function listEvents(req, res, auth, callback) {
 		callback(req, res, result);
 	});
 }
+
+// Saves the user auth token locally
+// TODO: save in database?
+function storeToken(token) {
+	try {
+		fs.mkdirSync(TOKEN_DIR);
+	} catch (err) {
+		if (err.code != 'EEXIST') {
+			throw err;
+		}
+	}
+	fs.writeFile(TOKEN_PATH, JSON.stringify(token));
+	console.log('Token stored to ' + TOKEN_PATH);
+}
+
+/////////////////////////////////
+
 
 module.exports = router;

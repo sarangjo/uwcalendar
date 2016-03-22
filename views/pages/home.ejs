@@ -12,7 +12,7 @@
     <p>Email: <%= user.email %></p>
     <p>Password: <%= user.password %></p>
     <% if (typeof user.googleauth == 'undefined') { %>
-    <a href="go">Connect to Google</a>
+    <a href="googleauth">Connect to Google</a>
     <% } else { %>
     <a href="classes">View Classes</a>
     <% } %>

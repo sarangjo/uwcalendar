@@ -7,6 +7,7 @@
     <header>
       <% include ../partials/header %>
     </header>
+    <p><a href="home">Home</a></p>
 		<h1><%= title %></h1>
 		<h2>Add a new class:</h2>
     <form id="formAddClass" name="addclass" method="post" action="/addclass">
@@ -20,7 +21,7 @@
         <tr>
           <th>Add?</th>
           <th>Name</th>
-          <th>Room</th>
+          <th>Room</th> 
           <th>Start</th>
           <th>End</th>
           <th>Days</th>
@@ -29,15 +30,15 @@
           <tr>
             <td>
               <input id="inputClassAdd" type="checkbox" name="classadd<%= i %>"
-                value="<%= ((typeof oldBody["classadd" + i] != 'undefined') ? "checked" : "")%>">
-            </td>
+                value="<%= ((typeof oldBody["classadd" + i] != 'undefined') ? "checked" : "checked")%>">
+            </td>         
             <td>
               <input id="inputClassName" type="text" placeholder="Class Name" name="classname<%= i %>"
-                value="<%= (typeof oldBody["classname" + i] != 'undefined') ? (oldBody["classname" + i]) : "" %>">
+                value="<%= (typeof oldBody["classname" + i] != 'undefined') ? (oldBody["classname" + i]) : "Sidd Time 0" %>">
             </td>
             <td>
               <input id="inputClassLocation" type="text" placeholder="Room Number" name="classlocation<%= i %>"
-                value="<%= (typeof oldBody["classlocation" + i] != 'undefined') ? (oldBody["classlocation" + i]) : "" %>">
+                value="<%= (typeof oldBody["classlocation" + i] != 'undefined') ? (oldBody["classlocation" + i]) : "CSE 069" %>">
             </td>
             <td>
               <input id="inputClassStart" type="time" name="classstart<%= i %>"

@@ -35,23 +35,96 @@ function dateToString(date) {
 /////////////////////////////////////////
 
 /* GET home page. */
-router.get('/', function (req, res, next) {
+router.get('/', function (req, res) {
 	res.render('pages/index', { title: 'UW Calendar', loggedout: true });
 });
 
-/* GET googleauth page */
-router.get('/googleauth', function (req, res, next) {
-	var authUrl = oauth2Client.generateAuthUrl({access_type: 'offline',scope: SCOPES});
-	console.log("Authorization URL generated.");
-
-	res.render('pages/googleauth', {
-		title: 'Google Auth',
-		auth: authUrl,
-		loggedout: true
-	});
+/* GET login page */
+router.get('/login', function (req, res) {
+	res.render('pages/login', { title: 'Login', loggedout: true });
 });
 
-// Setup our app to access the calendar, and continue the workflow.
+/* POST login form */
+router.post('/login', function (req, res) {
+	var db = req.db;
+	console.log("Logging in with: " + req.body.email);
+  db.get('usercollection').find( {email: req.body.email}, {}, function (err,results) {
+  	if (err) {
+  		console.log("Couldn't find provided email.");
+  		res.redirect('/login');
+  		return;
+  	}
+  	// results should be 1 element long
+  	if (results.length != 1) {
+  		console.log("Internal db error: more than 1 user.");
+  		res.redirect('/login');
+  		return;
+  	}
+		var result = results[0];
+  	finishLogin(req, res, result);
+  });
+});
+
+// Finishes up logging in with the resulting user, saving it to the
+// `user` variable
+function finishLogin(req, res, result) {
+	//req.session.user = result;
+	user = result;
+	res.redirect('/home');
+}
+
+/* GET signup page */
+router.get('/signup', function (req, res) {
+	res.render('pages/signup', { title: 'Signup', loggedout: true });
+});
+
+/* POST login form */
+router.post('/signup', function (req, res) {
+	var db = req.db;
+	
+	// TODO: check existing email
+
+  var collection = db.get('usercollection');
+
+  collection.insert({
+  	email: req.body.email,
+  	password: req.body.password
+  }, function (err, doc) {
+  	if (err) {
+  		res.send("There was a problem.");
+  	} else {
+  		console.log("User signed up!");
+  		console.log(doc);
+  		finishLogin(req, res, doc);
+  	}
+  });
+});
+
+/* GET logout page. */
+router.get('/logout', function (req, res) {
+	// Disassociate the oauth2client's token from the current user
+	oauth2Client.token = null;
+	// Remove user from session
+	user = null;
+
+	console.log("Deleted user.");
+
+	res.redirect('/');
+});
+
+/* GET home page. */
+router.get('/home', function (req, res) {
+	if (oauth2Client == null) {
+		console.log("App hasn't been setup yet.");
+		setupAppForGoogle(req, res, addQtrInfo);
+		return;
+	}
+	addQtrInfo(req, res);
+});
+
+/**
+ * Setup our app to access the calendar, and continue the workflow.
+ */
 function setupAppForGoogle(req, res, callback) {
 	// Load client secrets from a local file.
 	fs.readFile('client_secret.json', function (err, content) {
@@ -74,6 +147,41 @@ function setupAppForGoogle(req, res, callback) {
 		callback(req, res);
 	});
 }
+
+function addQtrInfo(req, res) {
+	// Adding the quarter details object to the session
+	if (quarterInfo == null) {
+		fs.readFile(QTR_DETAILS, function (err, qtrDetailsFileContent) {
+			if (err) {
+				console.log('Error loading quarter info: ' + err);
+				return;
+			}
+			quarterInfo = JSON.parse(qtrDetailsFileContent);
+			renderHome(req, res);
+		});
+		return;
+	}
+	renderHome(req, res);
+}
+
+function renderHome(req, res) {
+	res.render('pages/home', {
+    "user": user,
+    loggedout: false
+  });
+}
+
+/* GET googleauth page */
+router.get('/googleauth', function (req, res) {
+	var authUrl = oauth2Client.generateAuthUrl({access_type: 'offline',scope: SCOPES});
+	console.log("Authorization URL generated.");
+
+	res.render('pages/googleauth', {
+		title: 'Google Auth',
+		auth: authUrl,
+		loggedout: true
+	});
+});
 
 /* GET authorized page. This is after retrieving the OAuth2 token. */
 router.get('/authorized', function (req, res) {
@@ -108,17 +216,12 @@ function renderFailedAuth(res) {
 
 /* GET classes page. */
 router.get('/classes', function (req, res) {
-	setupClasses(req, res);
-});
-
-// Setup for loading the classes page
-function setupClasses(req, res) {
 	// Read in the JSON token from the user
 	var token = user.googleauth;
 	
 	if (typeof token == 'undefined') {
 		console.log("The user has not authorized with Google.");
-		res.redirect('googleauth');
+		res.redirect('/googleauth');
 		return;
 	}
 
@@ -134,20 +237,19 @@ function setupClasses(req, res) {
 	// Number of classes to allow
 	params.nOfClasses = N_OF_CLASSES;
 
-	// Adding the quarter details object to the session
-	if (quarterInfo == null) {
-		fs.readFile(QTR_DETAILS, function (err, qtrDetailsFileContent) {
-			if (err) {
-				console.log('Error loading quarter info: ' + err);
-				return;
-			}
-			quarterInfo = JSON.parse(qtrDetailsFileContent);
-			renderClasses(req, res, params);
-		});
-	} else {
+	// Add all of the classes to be shown to the params object
+	req.db.get('usercollection').find( {email: user.email}, {}, function (err,results) {
+		if (err || results.length != 1) {
+			res.redirect('login');
+			return;
+		}
+		user = results[0];
+
+		params.schedule = user.schedule;
+
 		renderClasses(req, res, params);
-	}
-}
+	});
+});
 
 /** 
  * Renders the classes given a params object.
@@ -186,21 +288,12 @@ router.post('/addclass', function (req, res) {
 	// We are error-free!
 	// Update our local copy of the user
 	req.db.get('usercollection').find( {email: user.email}, {}, function (err,results) {
-  	if (err) {
-  		console.log("Couldn't find provided email.");
+  	if (err || results.length != 1) {
   		res.redirect('/login');
   		return;
   	}
-  	// results should be 1 element long
-  	if (results.length != 1) {
-  		console.log("Internal db error: more than 1 user.");
-  		res.redirect('/login');
-  		return;
-  	}
-
 		user = results[0];
-
-		// Proceed with saving classes!
+		
 		saveClass(req, res, 0);
 	});
 });
@@ -239,6 +332,7 @@ function saveClass(req, res, index) {
 	user.schedule[req.body.classqtr].push(createDbClass(req, index));
 
 	req.db.get('usercollection').update({email: user.email}, {$set:{schedule:user.schedule}});
+	console.log("Added to database");
 
 	// Insert the class into the Google calendar
 	google.calendar('v3').events.insert({
@@ -253,8 +347,9 @@ function saveClass(req, res, index) {
 			// Abort!
 			res.redirect('/classes');
 		} else {
+			console.log("Added to GCal");
+
 			var message = "Class #" + index + " added!";
-			console.log(message);
 			req.session.message.push(message);
 			// Continues adding classes with the next index
 			saveClass(req, res, index + 1);
@@ -262,9 +357,9 @@ function saveClass(req, res, index) {
 	});
 }
 
-var dbDaysMap = {
-	monday: 16, tuesday: 8, wednesday: 4, thursday: 2, friday: 1
-};
+// Efficient way of representing which days a class is repeated, 
+// using bitwise representations for each day
+var dbDaysMap = {monday: 16, tuesday: 8, wednesday: 4, thursday: 2, friday: 1};
 
 /**
  * Creates a db class to be added to the database.
@@ -409,100 +504,6 @@ function parseDays(reqBody, index) {
 	return days;
 }
 
-/* GET logout page. */
-router.get('/logout', function (req, res) {
-	// Disassociate the oauth client token from the current user
-	oauth2Client.token = null;
-
-	// delete authorization token
-	//fs.unlinkSync(TOKEN_PATH);
-	//console.log("Auth token deleted.");
-
-	// Remove user from session
-	user = null;
-
-	console.log("Deleted user variable.");
-
-	res.redirect('/');
-});
-
-/* GET home page. */
-router.get('/home', function (req, res) {
-	if (oauth2Client == null) {
-		console.log("App hasn't been setup yet.");
-		setupAppForGoogle(req, res, renderHome);
-		return;
-	}
-	renderHome(req, res);
-});
-
-function renderHome(req, res) {
-	res.render('pages/home', {
-    "user": user,
-    loggedout: false
-  });
-}
-
-/* GET login page */
-router.get('/login', function (req, res, next) {
-	res.render('pages/login', { title: 'Login', loggedout: true });
-});
-
-/* POST login form */
-router.post('/login', function (req, res) {
-	var db = req.db;
-	console.log("Logging in with: " + req.body.email);
-  db.get('usercollection').find( {email: req.body.email}, {}, function (err,results) {
-  	if (err) {
-  		console.log("Couldn't find provided email.");
-  		res.redirect('/login');
-  		return;
-  	}
-  	// results should be 1 element long
-  	if (results.length != 1) {
-  		console.log("Internal db error: more than 1 user.");
-  		res.redirect('/login');
-  		return;
-  	}
-		var result = results[0];
-  	finishLogin(req, res, result);
-  });
-});
-
-// Finishes up logging in with the resulting user, saving it to the
-// `user` variable
-function finishLogin(req, res, result) {
-	//req.session.user = result;
-	user = result;
-	res.redirect('/home');
-}
-
-/* GET signup page */
-router.get('/signup', function (req, res, next) {
-	res.render('pages/signup', { title: 'Signup', loggedout: true });
-});
-
-/* POST login form */
-router.post('/signup', function (req, res) {
-	var db = req.db;
-	
-	// TODO: check existing email
-
-  var collection = db.get('usercollection');
-
-  collection.insert({
-  	email: req.body.email,
-  	password: req.body.password
-  }, function (err, doc) {
-  	if (err) {
-  		res.send("There was a problem.");
-  	} else {
-  		console.log("User signed up!");
-  		console.log(doc);
-  		finishLogin(req, res, doc);
-  	}
-  });
-});
 
 ///////// OLD FUNCTIONS /////////
 

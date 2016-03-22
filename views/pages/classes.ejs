@@ -9,7 +9,19 @@
     </header>
     <p><a href="home">Home</a></p>
 		<h1><%= title %></h1>
-		<h2>Add a new class:</h2>
+    <h2>Current classes:</h2>
+    <% for (var key in schedule) {
+      if (schedule.hasOwnProperty(key)) { %>
+        <h3>Quarter <%= key %></h3>
+        <ul>
+        <% for (var i in schedule[key]) { %>
+          <li><%= schedule[key][i].name %>, <%= schedule[key][i].location %></li>
+        <% } %>
+        </ul> 
+      <% }
+    }
+    %>
+    <h2>Add a new class:</h2>
     <form id="formAddClass" name="addclass" method="post" action="/addclass">
       <select id="inputQuarter" name="classqtr">
         <option value="wi16">Winter 2016</option>

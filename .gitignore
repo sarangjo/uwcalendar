@@ -2,11 +2,3 @@ node_modules/
 data/
 credentials/
 npm-debug.log
-UWCalendar/*.iml
-UWCalendar/.gradle
-UWCalendar/local.properties
-UWCalendar/.idea/workspace.xml
-UWCalendar/.idea/libraries
-UWCalendar/.DS_Store
-UWCalendar/build
-UWCalendar/captures

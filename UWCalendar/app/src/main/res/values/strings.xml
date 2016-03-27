@@ -21,4 +21,7 @@
     <string name="add_class">Add Class</string>
     <string name="prompt_end">Class End</string>
     <string name="prompt_start">Class Start</string>
+    <string name="title_activity_google_auth">GoogleAuthActivity</string>
+    <string name="not_connected_to_google">Not connected to Google.</string>
+    <string name="connected_to_google">Connected to Google!</string>
 </resources>

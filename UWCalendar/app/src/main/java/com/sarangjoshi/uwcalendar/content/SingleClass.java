@@ -12,6 +12,8 @@ public class SingleClass {
     private String start;
     private String end;
 
+    private String googleEventId;
+
     public SingleClass() {
     }
 
@@ -45,5 +47,13 @@ public class SingleClass {
 
     public String toString() {
         return getName() + ", " + getLocation() + ". From " + getStart() + " to " + getEnd();
+    }
+
+    public String getGoogleEventId() {
+        return googleEventId;
+    }
+
+    public void setGoogleEventId(String googleEventId) {
+        this.googleEventId = googleEventId;
     }
 }

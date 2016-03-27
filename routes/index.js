@@ -500,6 +500,7 @@ function timesValid(start, end) {
 
 /**
  * Parses out the days string from the request body
+ * // TODO simplify the start nonsense by checking if `days` is empty
  */
 function parseDays(reqBody, index) {
 	var start = true;

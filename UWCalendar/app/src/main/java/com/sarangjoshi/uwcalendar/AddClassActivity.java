@@ -15,6 +15,8 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TimePicker;
 
+import com.sarangjoshi.uwcalendar.data.FirebaseData;
+
 import java.util.Calendar;
 
 public class AddClassActivity extends AppCompatActivity {

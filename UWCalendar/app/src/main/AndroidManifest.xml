@@ -5,6 +5,9 @@
     <!-- To access Firebase data -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- To access the internet! -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- To auto-complete the email text field in the login form with the user's emails -->
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.READ_PROFILE" />
@@ -33,6 +36,15 @@
         <activity
             android:name=".AddClassActivity"
             android:label="@string/title_activity_add_class"
+            android:parentActivityName=".HomeActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.sarangjoshi.uwcalendar.HomeActivity" />
+        </activity>
+        <activity
+            android:name=".GoogleAuthActivity"
+            android:label="@string/title_activity_google_auth"
             android:parentActivityName=".HomeActivity"
             android:theme="@style/AppTheme.NoActionBar">
             <meta-data

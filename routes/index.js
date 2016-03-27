@@ -5,6 +5,9 @@ var fs = require('fs');
 var google = require('googleapis');
 var googleAuth = require('google-auth-library');
 
+// MD5 hashing for password
+var md5 = require("blueimp-md5");
+
 var SCOPES = ['https://www.googleapis.com/auth/calendar'];
 var TOKEN_DIR = 'credentials/';
 var TOKEN_PATH = TOKEN_DIR + 'uwgooglecal-cred.json';
@@ -19,7 +22,7 @@ var quarterInfo = null;
 var oauth2Client = null;
 
 // Number of classes
-var N_OF_CLASSES = 8;
+var N_OF_CLASSES = 4;
 
 // Current user
 var user = null;
@@ -41,26 +44,35 @@ router.get('/', function (req, res) {
 
 /* GET login page */
 router.get('/login', function (req, res) {
+	if (user) {
+		res.redirect('/home');
+		return;
+	}
 	res.render('pages/login', { title: 'Login', loggedout: true });
 });
 
 /* POST login form */
 router.post('/login', function (req, res) {
-	var db = req.db;
-	console.log("Logging in with: " + req.body.email);
-  db.get('usercollection').find( {email: req.body.email}, {}, function (err,results) {
+	// TODO: add password as a parameter for the find operation
+	req.db.get('usercollection').find( {email: req.body.email}, {}, function (err,results) {
   	if (err) {
-  		console.log("Couldn't find provided email.");
+  		console.log("Db error.");
+  		console.log(err);
   		res.redirect('/login');
   		return;
   	}
   	// results should be 1 element long
-  	if (results.length != 1) {
+  	if (results.length > 1) {
   		console.log("Internal db error: more than 1 user.");
+  		res.redirect('/login');
+  		return;
+  	} else if (results.length < 1) {
+  		console.log("Couldn't find user.");
   		res.redirect('/login');
   		return;
   	}
 		var result = results[0];
+		console.log("Logging in with: " + req.body.email);
   	finishLogin(req, res, result);
   });
 });
@@ -75,20 +87,25 @@ function finishLogin(req, res, result) {
 
 /* GET signup page */
 router.get('/signup', function (req, res) {
+	if (user) {
+		res.redirect('/home');
+		return;
+	}
 	res.render('pages/signup', { title: 'Signup', loggedout: true });
 });
 
 /* POST login form */
 router.post('/signup', function (req, res) {
-	var db = req.db;
+	var collection = req.db.get('usercollection');
 	
 	// TODO: check existing email
 
-  var collection = db.get('usercollection');
+	// TODO: secure password
+	var passwordhash = md5(req.body.password);
 
   collection.insert({
   	email: req.body.email,
-  	password: req.body.password
+  	password: passwordhash
   }, function (err, doc) {
   	if (err) {
   		res.send("There was a problem.");
@@ -102,18 +119,25 @@ router.post('/signup', function (req, res) {
 
 /* GET logout page. */
 router.get('/logout', function (req, res) {
-	// Disassociate the oauth2client's token from the current user
+	// Disassociate the oauth2Client's token from the current user
 	oauth2Client.token = null;
+	
 	// Remove user from session
 	user = null;
 
-	console.log("Deleted user.");
+	console.log("Logged out.");
 
 	res.redirect('/');
 });
 
 /* GET home page. */
 router.get('/home', function (req, res) {
+	if (user == null) {
+		// logged out
+		res.redirect('/login');
+		return;
+	}
+
 	if (oauth2Client == null) {
 		console.log("App hasn't been setup yet.");
 		setupAppForGoogle(req, res, addQtrInfo);
@@ -197,8 +221,7 @@ router.get('/authorized', function (req, res) {
 		oauth2Client.credentials = token;
 		
 		// Store in database
-		var db = req.db;
-		var collection = db.get('usercollection');
+		var collection = req.db.get('usercollection');
 		collection.update({email: user.email}, {$set:{googleauth:token}});
 
 		// Store in local user object
@@ -216,6 +239,12 @@ function renderFailedAuth(res) {
 
 /* GET classes page. */
 router.get('/classes', function (req, res) {
+	if (user == null) {
+		// logged out
+		res.redirect('/login');
+		return;
+	}
+
 	// Read in the JSON token from the user
 	var token = user.googleauth;
 	
@@ -224,8 +253,6 @@ router.get('/classes', function (req, res) {
 		res.redirect('/googleauth');
 		return;
 	}
-
-	console.log("The user has authorized with Google.");
 	oauth2Client.credentials = token;
 
 	// Setting up parameters to send to the page
@@ -324,16 +351,6 @@ function saveClass(req, res, index) {
 		return;
 	}
 
-	// Insert the class into the database
-	if (!user.hasOwnProperty("schedule"))
-		user.schedule = {};
-	if (!user.schedule.hasOwnProperty(req.body.classqtr))
-		user.schedule[req.body.classqtr] = [];
-	user.schedule[req.body.classqtr].push(createDbClass(req, index));
-
-	req.db.get('usercollection').update({email: user.email}, {$set:{schedule:user.schedule}});
-	console.log("Added to database");
-
 	// Insert the class into the Google calendar
 	google.calendar('v3').events.insert({
 		auth: oauth2Client,
@@ -349,9 +366,20 @@ function saveClass(req, res, index) {
 		} else {
 			console.log("Added to GCal");
 
+			// Insert the class into the database
+			if (!user.hasOwnProperty("schedule"))
+				user.schedule = {};
+			if (!user.schedule.hasOwnProperty(req.body.classqtr))
+				user.schedule[req.body.classqtr] = [];
+			var dbClass = createDbClass(req, index, event);
+			user.schedule[req.body.classqtr].push(dbClass);
+
+			req.db.get('usercollection').update({email: user.email}, {$set:{schedule:user.schedule}});
+			console.log("Added to database");
+
+			// Wrap up and move on
 			var message = "Class #" + index + " added!";
 			req.session.message.push(message);
-			// Continues adding classes with the next index
 			saveClass(req, res, index + 1);
 		}
 	});
@@ -364,7 +392,7 @@ var dbDaysMap = {monday: 16, tuesday: 8, wednesday: 4, thursday: 2, friday: 1};
 /**
  * Creates a db class to be added to the database.
  */
-function createDbClass(req, index) {
+function createDbClass(req, index, googleEvent) {
 	var days = 0;
 
 	// Go through and compile the bitwise vector
@@ -381,7 +409,8 @@ function createDbClass(req, index) {
 		location: req.body["classlocation" + index],
 		days: days,
 		start: req.body["classstart" + index],
-		end: req.body["classend" + index]
+		end: req.body["classend" + index],
+		googleEventId: googleEvent.id
 	};
 
 	console.log(dbClass);
@@ -504,6 +533,39 @@ function parseDays(reqBody, index) {
 	return days;
 }
 
+/* GET deleteClass page. Deletes class and redirects to /classes. */
+router.get('/deleteclass', function (req, res) {
+	var i = req.query.index;
+	var qtr = req.query.qtr;
+	var classToDelete = user.schedule[qtr][i];
+
+	console.log(classToDelete);
+
+	// Delete from gcal
+	google.calendar('v3').events.delete({
+		auth: oauth2Client,
+		calendarId: 'primary',
+		eventId: classToDelete.googleEventId
+	}, function (err, response) {
+		if (err) {
+			console.log("Could not delete Google event:");
+			console.log(err);
+		} else {
+			console.log("Deleted Google event.");
+
+			// Delete from db
+			user.schedule[qtr].splice(i, 1);
+
+			if (user.schedule[qtr].length == 0) {
+				delete user.schedule[qtr];
+			}
+
+			req.db.get('usercollection').update({email: user.email},  {$set:{schedule:user.schedule}});
+			console.log("Deleted from db.");
+		}
+		res.redirect('/classes');
+	});
+});
 
 ///////// OLD FUNCTIONS /////////
 
@@ -563,6 +625,5 @@ function storeToken(token) {
 }
 
 /////////////////////////////////
-
 
 module.exports = router;

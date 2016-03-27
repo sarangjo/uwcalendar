@@ -15,7 +15,7 @@
         <h3>Quarter <%= key %></h3>
         <ul>
         <% for (var i in schedule[key]) { %>
-          <li><%= schedule[key][i].name %>, <%= schedule[key][i].location %></li>
+          <li><%= schedule[key][i].name %>, <%= schedule[key][i].location %> <a href="deleteclass?index=<%= i %>&qtr=<%= key %>">Delete</a></li>
         <% } %>
         </ul> 
       <% }

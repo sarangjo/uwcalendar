@@ -9,14 +9,15 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.firebase.client.ChildEventListener;
 import com.firebase.client.DataSnapshot;
+import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
 import com.firebase.client.ValueEventListener;
 import com.google.api.client.extensions.android.http.AndroidHttp;
@@ -28,12 +29,12 @@ import com.google.api.client.util.DateTime;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventDateTime;
-import com.google.api.services.calendar.model.Events;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.GoogleAuthData;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -52,10 +53,12 @@ public class HomeActivity extends AppCompatActivity {
 
     ScheduleData mScheduleData;
 
+    List<String> mClassIds;
+    List<String> mQuarters;
+    List<SingleClass> mSingleClassList;
+    ListView mClassesList;
     TextView mIsConnected;
     Button mGoogleAuthBtn;
-
-    ProgressDialog mDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,44 +97,22 @@ public class HomeActivity extends AppCompatActivity {
         mGoogleAuthData.setupCredentials(getApplicationContext());
         mCredential = mGoogleAuthData.getCredentials();
 
-        // NOT CONNECTED
         mIsConnected = (TextView) findViewById(R.id.is_connected_to_google_view);
-        mIsConnected.setText(getResources().getString(R.string.not_connected_to_google));
 
         // Schedule data
         mScheduleData = ScheduleData.getInstance();
 
         mFirebaseData.getUserRef().addValueEventListener(new ValueEventListener() {
             @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.child("googleauth").exists()) {
-                    // TODO: finish
-                }
-            }
-
-            @Override
-            public void onCancelled(FirebaseError firebaseError) {
-
-            }
-        });
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        downloadSchedule();
-    }
-
-    /**
-     * Downloads the schedule and then loads it onto the view.
-     */
-    private void downloadSchedule() {
-        mDialog = new ProgressDialog(this);
-        mDialog.setMessage("Downloading schedule...");
-        mDialog.show();
-        mFirebaseData.getUserRef().addValueEventListener(new ValueEventListener() {
-            @Override
             public void onDataChange(DataSnapshot snapshot) {
+                if (snapshot.child("googleauth").exists()) {
+                    // TODO: finish
+                    connectedToGoogle(snapshot.child("googleauth").getValue().toString());
+                } else {
+                    // NOT CONNECTED
+                    mIsConnected.setText(getResources().getString(R.string.not_connected_to_google));
+                }
+
                 DataSnapshot schedule = snapshot.child("schedule");
                 setClassesData(schedule);
             }
@@ -139,6 +120,18 @@ public class HomeActivity extends AppCompatActivity {
             @Override
             public void onCancelled(FirebaseError firebaseError) {
                 Log.d("Download error", firebaseError.getMessage());
+            }
+        });
+
+        mClassesList = (ListView) findViewById(R.id.classes_list);
+        mClassIds = new ArrayList<>();
+        mSingleClassList = new ArrayList<>();
+        mQuarters = new ArrayList<>();
+        mClassesList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                new DeleteClassTask(position).execute();
+                return true;
             }
         });
     }
@@ -149,17 +142,17 @@ public class HomeActivity extends AppCompatActivity {
      * @param schedule
      */
     private void setClassesData(DataSnapshot schedule) {
-        List<SingleClass> list = new ArrayList<>();
+        mSingleClassList.clear();
+        mClassIds.clear();
         for (DataSnapshot quarter : schedule.getChildren()) {
             for (DataSnapshot singleClass : quarter.getChildren()) {
-                list.add(singleClass.getValue(SingleClass.class));
+                mSingleClassList.add(singleClass.getValue(SingleClass.class));
+                mClassIds.add(singleClass.getKey());
+                mQuarters.add(quarter.getKey());
             }
         }
-        ArrayAdapter<SingleClass> adapter = new ArrayAdapter<SingleClass>(this, android.R.layout.simple_list_item_1, list);
-        ListView classesList = (ListView) findViewById(R.id.classes_list);
-        classesList.setAdapter(adapter);
-
-        mDialog.dismiss();
+        ArrayAdapter<SingleClass> adapter = new ArrayAdapter<SingleClass>(this, android.R.layout.simple_list_item_1, mSingleClassList);
+        mClassesList.setAdapter(adapter);
     }
 
     @Override
@@ -189,6 +182,8 @@ public class HomeActivity extends AppCompatActivity {
                     gAuth.put("googleauth", accountName);
                     mFirebaseData.getUserRef().updateChildren(gAuth);
 
+                    Toast.makeText(this, accountName, Toast.LENGTH_LONG).show();
+
                     connectedToGoogle(accountName);
                 }
                 break;
@@ -201,13 +196,13 @@ public class HomeActivity extends AppCompatActivity {
      * @param accountName the linked account name
      */
     private void connectedToGoogle(String accountName) {
-        Toast.makeText(this, accountName, Toast.LENGTH_LONG).show();
-
         mIsConnected.setText(getResources().getString(R.string.connected_to_google));
         mGoogleAuthBtn.setVisibility(View.GONE);
 
         // Sets account name in the data object
-        mCredential.setSelectedAccountName(accountName);
+        // TODO:
+        if (mCredential.getSelectedAccountName() == null)
+            mCredential.setSelectedAccountName(accountName);
     }
 
     /**
@@ -224,7 +219,7 @@ public class HomeActivity extends AppCompatActivity {
             JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
             this.mCalendarService = new Calendar.Builder(
                     transport, jsonFactory, mCredential)
-                    .setApplicationName("Google Calendar API Android Quickstart")
+                    .setApplicationName("UW Calendar")
                     .build();
         }
 
@@ -295,7 +290,7 @@ public class HomeActivity extends AppCompatActivity {
                     days += (days.isEmpty() ? "" : ",") + recurrenceDays[i];
                 }
             }
-            String[] recurrence = new String[] {"RRULE:FREQ=WEEKLY;UNTIL=" + enddate + "T115959Z;WKST=SU;BYDAY=" + days};
+            String[] recurrence = new String[]{"RRULE:FREQ=WEEKLY;UNTIL=" + enddate + "T115959Z;WKST=SU;BYDAY=" + days};
             event.setRecurrence(Arrays.asList(recurrence));
 
             return event;
@@ -304,7 +299,63 @@ public class HomeActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(final Boolean success) {
             mDialog.dismiss();
-            downloadSchedule();
+        }
+
+        @Override
+        protected void onCancelled() {
+            mDialog.hide();
+        }
+    }
+
+    private class DeleteClassTask extends AsyncTask<Void, Void, Boolean> {
+        private int mPosition;
+        private SingleClass mClass;
+
+        private Calendar mCalendarService = null;
+
+        private ProgressDialog mDialog;
+
+        DeleteClassTask(int position) {
+            this.mPosition = position;
+            this.mClass = mSingleClassList.get(position);
+
+            this.mDialog = new ProgressDialog(HomeActivity.this);
+            HttpTransport transport = AndroidHttp.newCompatibleTransport();
+            JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+            this.mCalendarService = new Calendar.Builder(
+                    transport, jsonFactory, mCredential)
+                    .setApplicationName("UW Calendar")
+                    .build();
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            this.mDialog.setMessage("Deleting...");
+            this.mDialog.show();
+        }
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+            // First the Google event
+            try {
+                mCalendarService.events().delete("primary", mClass.getGoogleEventId()).execute();
+            } catch (IOException e) {
+                Log.d("Calendar delete error", e.getMessage());
+                cancel(true);
+                return false;
+            }
+
+            // Then the Database event
+            mFirebaseData.getSchedule().child(mQuarters.get(mPosition) + "/" + mClassIds.get(mPosition))
+                    .removeValue();
+            return true;
+        }
+
+        @Override
+        protected void onPostExecute(final Boolean success) {
+            mDialog.dismiss();
         }
 
         @Override

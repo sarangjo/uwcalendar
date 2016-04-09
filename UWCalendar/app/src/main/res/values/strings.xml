@@ -4,7 +4,6 @@
     <!-- Strings related to login -->
     <string name="prompt_email">Email</string>
     <string name="prompt_password">Password</string>
-    <string name="action_sign_in">Sign in</string>
     <string name="action_sign_up">Sign up</string>
     <string name="error_invalid_email">This email address is invalid</string>
     <string name="error_invalid_password">This password is too short</string>
@@ -12,16 +11,30 @@
     <string name="error_incorrect_password">This password is incorrect</string>
     <string name="error_field_required">This field is required</string>
 
-    <string name="title_activity_signup">Sign up</string>
     <string name="title_activity_home">Home</string>
     <string name="title_activity_add_class">Add Class</string>
+    <string name="title_activity_google_auth">GoogleAuthActivity</string>
+
 
     <string name="prompt_name">Class Name</string>
     <string name="prompt_location">Class Location</string>
     <string name="add_class">Add Class</string>
     <string name="prompt_end">Class End</string>
     <string name="prompt_start">Class Start</string>
-    <string name="title_activity_google_auth">GoogleAuthActivity</string>
     <string name="not_connected_to_google">Not connected to Google.</string>
     <string name="connected_to_google">Connected to Google!</string>
+    <string name="unspecified_account">Account unspecified.</string>
+    <string name="default_email">lol@lol.com</string>
+    <string name="default_password">abcdef</string>
+    <string name="error_message">Error.</string>
+    <string name="title_activity_signup">SignupActivity</string>
+    <string name="prompt_person_name">Name</string>
+    <string name="prompt_logout">Logout</string>
+    <string name="request_schedule">Request Schedule</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="title_activity_schedule">Schedule</string>
+    <string name="action_view_classes">View Classes</string>
+    <string name="prompt_change_password">Change Password</string>
+    <string name="prompt_old_password">Old Password</string>
+    <string name="prompt_new_password">New Password</string>
 </resources>

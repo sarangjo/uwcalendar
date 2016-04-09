@@ -3,12 +3,19 @@ package com.sarangjoshi.uwcalendar;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
@@ -24,7 +31,9 @@ import java.util.Map;
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivity extends AppCompatActivity implements SetNameFragment.SetNameListener {
+    private static final int SIGN_UP = 1;
+
     // UI references.
     private AutoCompleteTextView mEmailView;
     private EditText mPasswordView;
@@ -32,6 +41,8 @@ public class LoginActivity extends AppCompatActivity {
     private View mLoginFormView;
 
     private FirebaseData mFirebaseData;
+
+    private String mEmail, mPass;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,25 +95,25 @@ public class LoginActivity extends AppCompatActivity {
         mPasswordView.setError(null);
 
         // Store values at the time of the login attempt.
-        String email = mEmailView.getText().toString();
-        String password = mPasswordView.getText().toString();
+        mEmail = mEmailView.getText().toString();
+        mPass = mPasswordView.getText().toString();
 
         boolean cancel = false;
         View focusView = null;
 
         // Check for a valid password, if the user entered one.
-        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
+        if (!TextUtils.isEmpty(mPass) && !isPasswordValid(mPass)) {
             mPasswordView.setError(getString(R.string.error_invalid_password));
             focusView = mPasswordView;
             cancel = true;
         }
 
         // Check for a valid email address.
-        if (TextUtils.isEmpty(email)) {
+        if (TextUtils.isEmpty(mEmail)) {
             mEmailView.setError(getString(R.string.error_field_required));
             focusView = mEmailView;
             cancel = true;
-        } else if (!isEmailValid(email)) {
+        } else if (!isEmailValid(mEmail)) {
             mEmailView.setError(getString(R.string.error_invalid_email));
             focusView = mEmailView;
             cancel = true;
@@ -115,30 +126,26 @@ public class LoginActivity extends AppCompatActivity {
         } else {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
-            showProgress(true);
             if (view.getId() == R.id.sign_in_button) {
-//                mLoginTask = new UserLoginTask(email, password);
-//                mLoginTask.execute((Void) null);
-                login(email, password);
+                login();
             } else if (view.getId() == R.id.sign_up_button) {
-                signup(email, password);
-//                mSignupTask = new UserSignupTask(email, password);
-//                mSignupTask.execute((Void) null);
+                DialogFragment fragment = new SetNameFragment();
+                fragment.show(getSupportFragmentManager(), "signup_name");
             }
         }
     }
 
-    /**
-     * Signs up and then logs in.
-     * @param email
-     * @param password
-     */
-    private void signup(final String email, final String password) {
-        mFirebaseData.getRef().createUser(email, password, new Firebase.ValueResultHandler<Map<String, Object>>() {
+    public void onSignupClick(final String name) {
+        showProgress(true);
+        mFirebaseData.getRef().createUser(mEmail, mPass, new Firebase.ValueResultHandler<Map<String, Object>>() {
             @Override
             public void onSuccess(Map<String, Object> result) {
                 Log.d("Created user account", result.get("uid").toString());
-                login(email, password);
+
+                // Store the user's name
+                mFirebaseData.getUsersRef().child(result.get("uid").toString()).child("name").setValue(name);
+
+                login();
             }
 
             @Override
@@ -150,13 +157,9 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Logs in.
-     * @param email
-     * @param password
-     */
-    private void login(String email, String password) {
-        mFirebaseData.getRef().authWithPassword(email, password, new Firebase.AuthResultHandler() {
+    private void login() {
+        showProgress(true);
+        mFirebaseData.getRef().authWithPassword(mEmail, mPass, new Firebase.AuthResultHandler() {
             @Override
             public void onAuthenticated(AuthData authData) {
                 Log.d("Logged in", authData.getUid());
@@ -222,6 +225,5 @@ public class LoginActivity extends AppCompatActivity {
             mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
         }
     }
-
 }
 

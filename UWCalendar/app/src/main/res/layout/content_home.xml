@@ -13,11 +13,31 @@
     tools:context="com.sarangjoshi.uwcalendar.HomeActivity"
     tools:showIn="@layout/activity_home">
 
-    <TextView
-        android:id="@+id/email_text_view"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge" />
+        android:orientation="horizontal" >
+
+        <TextView
+            android:id="@+id/name_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge" />
+
+        <Button
+            android:id="@+id/change_password_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="changePasswordClicked"
+            android:text="@string/prompt_change_password" />
+
+        <Button
+            android:id="@+id/logout_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="logoutClicked"
+            android:text="@string/prompt_logout" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -36,14 +56,39 @@
             android:text="Connect to Google" />
     </LinearLayout>
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="viewClassesClicked"
+        android:text="@string/action_view_classes" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="requestScheduleClicked"
+            android:text="@string/request_schedule" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="refreshUsersClicked"
+            android:text="@string/action_refresh" />
+
+    </LinearLayout>
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Current Classes"
+        android:text="Open Requests"
         android:textAppearance="?android:attr/textAppearanceLarge" />
 
     <ListView
-        android:id="@+id/classes_list"
+        android:id="@+id/requests_list"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 

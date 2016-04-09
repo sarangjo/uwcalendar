@@ -46,7 +46,9 @@ public class SingleClass {
     }
 
     public String toString() {
-        return getName() + ", " + getLocation() + ". From " + getStart() + " to " + getEnd();
+        String s = getName() + ", " + getLocation() + ". From " + getStart() + " to " + getEnd();
+        s += ". On days " + getDays();
+        return s;
     }
 
     public String getGoogleEventId() {

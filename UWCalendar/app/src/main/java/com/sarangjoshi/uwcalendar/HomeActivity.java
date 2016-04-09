@@ -1,15 +1,19 @@
 package com.sarangjoshi.uwcalendar;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
+import android.support.annotation.NonNull;
+import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.AdapterView;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -20,45 +24,29 @@ import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
 import com.firebase.client.ValueEventListener;
-import com.google.api.client.extensions.android.http.AndroidHttp;
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.api.client.util.DateTime;
-import com.google.api.services.calendar.Calendar;
-import com.google.api.services.calendar.model.Event;
-import com.google.api.services.calendar.model.EventDateTime;
-import com.sarangjoshi.uwcalendar.content.SingleClass;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.GoogleAuthData;
-import com.sarangjoshi.uwcalendar.data.ScheduleData;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
-public class HomeActivity extends AppCompatActivity {
-    public static final int ADD_CLASS_REQUEST = 2001;
-    public static final int GOOGLE_AUTH_REQUEST = 2002;
-    public static final String ACCOUNT_NAME = "accountName";
+public class HomeActivity extends AppCompatActivity
+        implements FirebaseData.UsersDownloadedListener, RequestScheduleFragment.NameSelectedListener, ChangePasswordFragment.ChangePasswordListener {
+    // TODO: add persistent overall user listener, move changing aspects to separate objects in database
 
     FirebaseData mFirebaseData;
-
     GoogleAuthData mGoogleAuthData;
-    GoogleAccountCredential mCredential;
 
-    ScheduleData mScheduleData;
-
-    List<String> mClassIds;
-    List<String> mQuarters;
-    List<SingleClass> mSingleClassList;
-    ListView mClassesList;
+    ListView mRequestsList;
     TextView mIsConnected;
     Button mGoogleAuthBtn;
+
+    ProgressDialog mDialog;
+
+    private List<String> mRequests;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,22 +55,7 @@ public class HomeActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(HomeActivity.this, AddClassActivity.class);
-                startActivityForResult(intent, ADD_CLASS_REQUEST);
-            }
-        });
-
         mFirebaseData = FirebaseData.getInstance();
-        TextView emailTextView = (TextView) findViewById(R.id.email_text_view);
-        try {
-            emailTextView.setText(mFirebaseData.getEmail());
-        } catch (NullPointerException e) {
-            emailTextView.setText("Email error");
-        }
 
         // Google auth
         mGoogleAuthBtn = (Button) findViewById(R.id.connect_to_google_btn);
@@ -90,101 +63,124 @@ public class HomeActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(HomeActivity.this, GoogleAuthActivity.class);
-                startActivityForResult(intent, GOOGLE_AUTH_REQUEST);
+                startActivityForResult(intent, GoogleAuthData.GOOGLE_AUTH_REQUEST);
             }
         });
         mGoogleAuthData = GoogleAuthData.getInstance();
         mGoogleAuthData.setupCredentials(getApplicationContext());
-        mCredential = mGoogleAuthData.getCredentials();
 
         mIsConnected = (TextView) findViewById(R.id.is_connected_to_google_view);
 
-        // Schedule data
-        mScheduleData = ScheduleData.getInstance();
-
-        mFirebaseData.getUserRef().addValueEventListener(new ValueEventListener() {
+        // TODO: extract this into a one-time listener
+        mFirebaseData.getUserRef().addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
-                if (snapshot.child("googleauth").exists()) {
+                if (snapshot.child(FirebaseData.GOOGLEAUTH_KEY).exists()) {
                     // TODO: finish
-                    connectedToGoogle(snapshot.child("googleauth").getValue().toString());
+                    connectedToGoogle(snapshot.child(FirebaseData.GOOGLEAUTH_KEY).getValue().toString());
                 } else {
                     // NOT CONNECTED
                     mIsConnected.setText(getResources().getString(R.string.not_connected_to_google));
                 }
 
-                DataSnapshot schedule = snapshot.child("schedule");
-                setClassesData(schedule);
+                TextView nameTextView = (TextView) findViewById(R.id.name_text_view);
+                try {
+                    nameTextView.setText(snapshot.child(FirebaseData.NAME_KEY).getValue().toString());
+                } catch (NullPointerException e) {
+                    nameTextView.setText("Name error");
+                }
+            }
+
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+                // TODO lel
+            }
+        });
+
+        // Listen to user request changes
+        ValueEventListener reqVEL = new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                // TODO: Update requests
+                setRequestsData(snapshot);
             }
 
             @Override
             public void onCancelled(FirebaseError firebaseError) {
                 Log.d("Download error", firebaseError.getMessage());
             }
-        });
+        };
+        mFirebaseData.setRequestsValueListener(reqVEL);
 
-        mClassesList = (ListView) findViewById(R.id.classes_list);
-        mClassIds = new ArrayList<>();
-        mSingleClassList = new ArrayList<>();
-        mQuarters = new ArrayList<>();
-        mClassesList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+        mRequestsList = (ListView) findViewById(R.id.requests_list);
+        mRequests = new ArrayList<>();
+
+        mDialog = new ProgressDialog(this);
+    }
+
+    public void logoutClicked(View view) {
+        mFirebaseData.getRef().unauth();
+        Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
+        startActivity(intent);
+        finish();
+    }
+
+    public void requestScheduleClicked(View view) {
+        // First need to download the data, then call the corresponding fragment
+        if (mFirebaseData.getAllUsers().isEmpty())
+            mFirebaseData.downloadAllUsers(HomeActivity.this);
+        else
+            onUsersDownloaded();
+    }
+
+    public void refreshUsersClicked(View view) {
+        mDialog.setMessage("Refreshing users...");
+        mDialog.show();
+        mFirebaseData.downloadAllUsers(new FirebaseData.UsersDownloadedListener() {
             @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                new DeleteClassTask(position).execute();
-                return true;
+            public void onUsersDownloaded() {
+                Toast.makeText(HomeActivity.this, "Users refreshed.", Toast.LENGTH_LONG).show();
+                mDialog.hide();
             }
         });
     }
 
-    /**
-     * Sets the classes view data.
-     *
-     * @param schedule
-     */
-    private void setClassesData(DataSnapshot schedule) {
-        mSingleClassList.clear();
-        mClassIds.clear();
-        for (DataSnapshot quarter : schedule.getChildren()) {
-            for (DataSnapshot singleClass : quarter.getChildren()) {
-                mSingleClassList.add(singleClass.getValue(SingleClass.class));
-                mClassIds.add(singleClass.getKey());
-                mQuarters.add(quarter.getKey());
-            }
+    public void viewClassesClicked(View view) {
+        startActivity(new Intent(this, ScheduleActivity.class));
+    }
+
+    public void changePasswordClicked(View view) {
+        DialogFragment changePassword = new ChangePasswordFragment();
+        changePassword.show(getSupportFragmentManager(), "changePassword");
+    }
+
+    private void setRequestsData(DataSnapshot requests) {
+        mRequests.clear();
+        for (DataSnapshot request : requests.getChildren()) {
+            mRequests.add(request.getValue().toString());
         }
-        ArrayAdapter<SingleClass> adapter = new ArrayAdapter<SingleClass>(this, android.R.layout.simple_list_item_1, mSingleClassList);
-        mClassesList.setAdapter(adapter);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mRequests);
+        mRequestsList.setAdapter(adapter);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         // Check which request we're responding to
         switch (requestCode) {
-            case ADD_CLASS_REQUEST:
-                // Make sure the request was successful
+            case GoogleAuthData.GOOGLE_AUTH_REQUEST:
                 if (resultCode == RESULT_OK) {
-                    // Save class to database and Google
-                    SingleClass singleClass = new SingleClass(
-                            data.getStringExtra("name"),
-                            data.getStringExtra("location"),
-                            data.getIntExtra("days", 0),
-                            data.getStringExtra("start"),
-                            data.getStringExtra("end")
-                    );
-                    new SaveClassTask().execute(data.getStringExtra("quarter"), singleClass);
-                }
-                break;
-            case GOOGLE_AUTH_REQUEST:
-                if (resultCode == RESULT_OK) {
-                    String accountName = data.getStringExtra(ACCOUNT_NAME);
+                    String accountName = data.getStringExtra(GoogleAuthData.ACCOUNT_NAME_KEY);
 
                     // Save to database
                     Map<String, Object> gAuth = new HashMap<>();
-                    gAuth.put("googleauth", accountName);
+                    gAuth.put(FirebaseData.GOOGLEAUTH_KEY, accountName);
                     mFirebaseData.getUserRef().updateChildren(gAuth);
 
                     Toast.makeText(this, accountName, Toast.LENGTH_LONG).show();
 
                     connectedToGoogle(accountName);
+                } else if (resultCode == RESULT_CANCELED) {
+                    // TODO: do nothing?
                 }
                 break;
         }
@@ -201,166 +197,62 @@ public class HomeActivity extends AppCompatActivity {
 
         // Sets account name in the data object
         // TODO:
-        if (mCredential.getSelectedAccountName() == null)
-            mCredential.setSelectedAccountName(accountName);
+        mGoogleAuthData.setAccountName(accountName);
     }
 
-    /**
-     * Saves a single class. Parameters: quarter, SingleClass
-     */
-    private class SaveClassTask extends AsyncTask<Object, Void, Boolean> {
-        private Calendar mCalendarService = null;
+    @Override
+    public void onUsersDownloaded() {
+        DialogFragment fragment = new RequestScheduleFragment();
+        fragment.show(getSupportFragmentManager(), "requestSchedule");
+    }
 
-        private ProgressDialog mDialog;
+    @Override
+    public void nameSelected(final RequestScheduleFragment.NameToId selected) {
+        mDialog.setMessage("Requesting schedule...");
+        // First check if a request has already been issued
+        Firebase reqRef = mFirebaseData.getUsersRef().child(selected.id).child(FirebaseData.REQUESTS_KEY);
+        reqRef.orderByValue().equalTo(mFirebaseData.getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Iterator<DataSnapshot> iter = dataSnapshot.getChildren().iterator();
+                if (iter.hasNext()) {
+                    // There is already a request
+                    DataSnapshot child = iter.next();
+                    Toast.makeText(HomeActivity.this, "Request has already been made.", Toast.LENGTH_LONG).show();
+                } else {
+                    // No request has been made so far.
+                    // TODO: Check if a connection exists
 
-        public SaveClassTask() {
-            this.mDialog = new ProgressDialog(HomeActivity.this);
-            HttpTransport transport = AndroidHttp.newCompatibleTransport();
-            JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-            this.mCalendarService = new Calendar.Builder(
-                    transport, jsonFactory, mCredential)
-                    .setApplicationName("UW Calendar")
-                    .build();
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-
-            this.mDialog.setMessage("Saving...");
-            this.mDialog.show();
-        }
-
-        @Override
-        protected Boolean doInBackground(Object... params) {
-            SingleClass singleClass = (SingleClass) params[1];
-            String quarter = params[0].toString();
-
-            // Google
-            try {
-                // List the next 10 events from the primary calendar.
-                Event event = getGoogleEvent(quarter, singleClass);
-
-                String calendarId = "primary";
-                event = mCalendarService.events().insert(calendarId, event).execute();
-
-                Log.d("Event created:", event.getId());
-                singleClass.setGoogleEventId(event.getId());
-            } catch (Exception e) {
-                cancel(true);
-                return false;
-            }
-
-            // Firebase
-            mFirebaseData.addClass(quarter, singleClass);
-
-            return true;
-        }
-
-        /**
-         * Manufacture a Google event from the given class details.
-         *
-         * @param singleClass
-         * @return
-         */
-        private Event getGoogleEvent(String quarter, SingleClass singleClass) {
-            Event event = new Event().setSummary(singleClass.getName())
-                    .setLocation(singleClass.getLocation());
-
-            String[] qtrDetails = mScheduleData.getQuarterInfo(quarter);
-
-            // Expand start/end time to include full date
-            // TODO: timezone
-            String startString = qtrDetails[0] + "T" + singleClass.getStart() + ":00-07:00";
-            DateTime startDateTime = new DateTime(startString);
-            EventDateTime start = new EventDateTime().setDateTime(startDateTime).setTimeZone("America/Los_Angeles");
-            event.setStart(start);
-
-            String endString = startString.substring(0, 11) + singleClass.getEnd() + startString.substring(16);
-            DateTime endDateTime = new DateTime(endString);
-            EventDateTime end = new EventDateTime().setDateTime(endDateTime).setTimeZone("America/Los_Angeles");
-            event.setEnd(end);
-
-            // RECURRENCE DETAILS
-            String enddate = (qtrDetails[1]).replaceAll("-", "");
-            String[] recurrenceDays = {"MO", "TU", "WE", "TH", "FR"};
-            String days = "";
-            for (int i = 0; i < recurrenceDays.length; i++) {
-                if ((singleClass.getDays() & (1 << i)) != 0) {
-                    days += (days.isEmpty() ? "" : ",") + recurrenceDays[i];
+                    // Add a request to the object
+                    mFirebaseData.getUsersRef().child(selected.id).child(FirebaseData.REQUESTS_KEY).push().setValue(mFirebaseData.getUid());
                 }
+                mDialog.hide();
             }
-            String[] recurrence = new String[]{"RRULE:FREQ=WEEKLY;UNTIL=" + enddate + "T115959Z;WKST=SU;BYDAY=" + days};
-            event.setRecurrence(Arrays.asList(recurrence));
 
-            return event;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mDialog.dismiss();
-        }
-
-        @Override
-        protected void onCancelled() {
-            mDialog.hide();
-        }
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+                // TODO as always
+            }
+        });
     }
 
-    private class DeleteClassTask extends AsyncTask<Void, Void, Boolean> {
-        private int mPosition;
-        private SingleClass mClass;
-
-        private Calendar mCalendarService = null;
-
-        private ProgressDialog mDialog;
-
-        DeleteClassTask(int position) {
-            this.mPosition = position;
-            this.mClass = mSingleClassList.get(position);
-
-            this.mDialog = new ProgressDialog(HomeActivity.this);
-            HttpTransport transport = AndroidHttp.newCompatibleTransport();
-            JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-            this.mCalendarService = new Calendar.Builder(
-                    transport, jsonFactory, mCredential)
-                    .setApplicationName("UW Calendar")
-                    .build();
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-
-            this.mDialog.setMessage("Deleting...");
-            this.mDialog.show();
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            // First the Google event
-            try {
-                mCalendarService.events().delete("primary", mClass.getGoogleEventId()).execute();
-            } catch (IOException e) {
-                Log.d("Calendar delete error", e.getMessage());
-                cancel(true);
-                return false;
+    @Override
+    public void passwordChanged(String oldPass, String newPass) {
+        mDialog.setMessage("Changing password...");
+        mDialog.show();
+        mFirebaseData.getRef().changePassword(mFirebaseData.getEmail(), oldPass, newPass, new Firebase.ResultHandler() {
+            @Override
+            public void onSuccess() {
+                // Password changed! Hurrah.
+                Toast.makeText(HomeActivity.this, "Password changed.", Toast.LENGTH_LONG).show();
+                mDialog.hide();
             }
 
-            // Then the Database event
-            mFirebaseData.getSchedule().child(mQuarters.get(mPosition) + "/" + mClassIds.get(mPosition))
-                    .removeValue();
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mDialog.dismiss();
-        }
-
-        @Override
-        protected void onCancelled() {
-            mDialog.hide();
-        }
+            @Override
+            public void onError(FirebaseError firebaseError) {
+                Toast.makeText(HomeActivity.this, "Error: " + firebaseError.getMessage(), Toast.LENGTH_LONG).show();
+                mDialog.hide();
+            }
+        });
     }
 }

@@ -1,19 +1,20 @@
 package com.sarangjoshi.uwcalendar;
 
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -34,19 +35,19 @@ import java.util.List;
 import java.util.Map;
 
 public class HomeActivity extends AppCompatActivity
-        implements FirebaseData.UsersDownloadedListener, RequestScheduleFragment.NameSelectedListener, ChangePasswordFragment.ChangePasswordListener {
-    // TODO: add persistent overall user listener, move changing aspects to separate objects in database
+        implements RequestScheduleFragment.NameSelectedListener, ChangePasswordFragment.ChangePasswordListener {
+    private FirebaseData mFirebaseData;
+    private GoogleAuthData mGoogleAuthData;
 
-    FirebaseData mFirebaseData;
-    GoogleAuthData mGoogleAuthData;
+    private ListView mRequestsList;
+    private ListView mConnectionsList;
+    private TextView mIsGoogleConnected;
+    private Button mGoogleAuthBtn;
 
-    ListView mRequestsList;
-    TextView mIsConnected;
-    Button mGoogleAuthBtn;
+    private ProgressDialog mDialog;
 
-    ProgressDialog mDialog;
-
-    private List<String> mRequests;
+    private List<Request> mRequests;
+    private List<ConnectionProperty> mConnections;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,9 +70,9 @@ public class HomeActivity extends AppCompatActivity
         mGoogleAuthData = GoogleAuthData.getInstance();
         mGoogleAuthData.setupCredentials(getApplicationContext());
 
-        mIsConnected = (TextView) findViewById(R.id.is_connected_to_google_view);
+        mIsGoogleConnected = (TextView) findViewById(R.id.is_connected_to_google_view);
 
-        // TODO: extract this into a one-time listener
+        // Get user-specific data
         mFirebaseData.getUserRef().addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
@@ -80,7 +81,7 @@ public class HomeActivity extends AppCompatActivity
                     connectedToGoogle(snapshot.child(FirebaseData.GOOGLEAUTH_KEY).getValue().toString());
                 } else {
                     // NOT CONNECTED
-                    mIsConnected.setText(getResources().getString(R.string.not_connected_to_google));
+                    mIsGoogleConnected.setText(getResources().getString(R.string.not_connected_to_google));
                 }
 
                 TextView nameTextView = (TextView) findViewById(R.id.name_text_view);
@@ -113,54 +114,82 @@ public class HomeActivity extends AppCompatActivity
         mFirebaseData.setRequestsValueListener(reqVEL);
 
         mRequestsList = (ListView) findViewById(R.id.requests_list);
+        mRequestsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
+                DialogFragment dialog = new DialogFragment() {
+                    @NonNull
+                    @Override
+                    public Dialog onCreateDialog(Bundle savedInstanceState) {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(HomeActivity.this);
+
+                        // Setup "accept decline" dialog
+                        builder.setTitle("Accept request.").setMessage("Accept request?").setPositiveButton(" Accept", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                // Accept request
+                                new AcceptRequestTask().execute(position);
+                            }
+                        }).setNegativeButton("Decline", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                            }
+                        });
+
+                        return builder.create();
+                    }
+                };
+                dialog.show(getSupportFragmentManager(), "acceptRequestFragment");
+            }
+        });
         mRequests = new ArrayList<>();
+
+        // Listen to user connection changes
+        ValueEventListener connVEL = new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                setConnections(dataSnapshot);
+            }
+
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+
+            }
+        };
+        mFirebaseData.setConnectionsValueListener(connVEL);
+
+        mConnectionsList = (ListView) findViewById(R.id.connections_list);
+        mConnectionsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // TODO: Open connection page
+                Intent intent = new Intent(HomeActivity.this, ConnectionActivity.class);
+                intent.putExtra(FirebaseData.CONNECTION_ID_KEY, mConnections.get(position).id);
+                startActivity(intent);
+            }
+        });
+        mConnections = new ArrayList<>();
 
         mDialog = new ProgressDialog(this);
     }
 
-    public void logoutClicked(View view) {
-        mFirebaseData.getRef().unauth();
-        Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
-        startActivity(intent);
-        finish();
-    }
-
-    public void requestScheduleClicked(View view) {
-        // First need to download the data, then call the corresponding fragment
-        if (mFirebaseData.getAllUsers().isEmpty())
-            mFirebaseData.downloadAllUsers(HomeActivity.this);
-        else
-            onUsersDownloaded();
-    }
-
-    public void refreshUsersClicked(View view) {
-        mDialog.setMessage("Refreshing users...");
-        mDialog.show();
-        mFirebaseData.downloadAllUsers(new FirebaseData.UsersDownloadedListener() {
-            @Override
-            public void onUsersDownloaded() {
-                Toast.makeText(HomeActivity.this, "Users refreshed.", Toast.LENGTH_LONG).show();
-                mDialog.hide();
-            }
-        });
-    }
-
-    public void viewClassesClicked(View view) {
-        startActivity(new Intent(this, ScheduleActivity.class));
-    }
-
-    public void changePasswordClicked(View view) {
-        DialogFragment changePassword = new ChangePasswordFragment();
-        changePassword.show(getSupportFragmentManager(), "changePassword");
-    }
-
-    private void setRequestsData(DataSnapshot requests) {
-        mRequests.clear();
-        for (DataSnapshot request : requests.getChildren()) {
-            mRequests.add(request.getValue().toString());
+    private void setConnections(DataSnapshot connections) {
+        mConnections.clear();
+        for (DataSnapshot conn : connections.getChildren()) {
+            // TODO What if names haven't loaded yet?
+            String id = conn.child(FirebaseData.CONNECTION_ID_KEY).getValue().toString();
+            FirebaseData.NameAndId with = mFirebaseData.getNameAndIdFromId(conn.child(FirebaseData.CONNECTION_WITH_KEY).getValue().toString());
+            mConnections.add(new ConnectionProperty(id, with));
         }
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mRequests);
-        mRequestsList.setAdapter(adapter);
+        ArrayAdapter<ConnectionProperty> adapter = new ArrayAdapter<ConnectionProperty>(this, android.R.layout.simple_list_item_1, mConnections) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                TextView v = (TextView) super.getView(position, convertView, parent);
+                v.setText(getItem(position).with.name);
+                return v;
+            }
+        };
+        mConnectionsList.setAdapter(adapter);
     }
 
     @Override
@@ -186,13 +215,58 @@ public class HomeActivity extends AppCompatActivity
         }
     }
 
+    //// BUTTONS CLICK RESPONSES ////
+
+    public void logoutClicked(View view) {
+        mFirebaseData.getRef().unauth();
+        Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
+        startActivity(intent);
+        finish();
+    }
+
+    public void requestScheduleClicked(View view) {
+        // First need to download the data, then call the corresponding fragment
+        DialogFragment fragment = new RequestScheduleFragment();
+        fragment.show(getSupportFragmentManager(), "requestSchedule");
+    }
+
+    public void viewClassesClicked(View view) {
+        startActivity(new Intent(this, ScheduleActivity.class));
+    }
+
+    public void changePasswordClicked(View view) {
+        DialogFragment changePassword = new ChangePasswordFragment();
+        changePassword.show(getSupportFragmentManager(), "changePassword");
+    }
+
+    /**
+     * Sets the requests data, to be called when a request is inbound.
+     */
+    private void setRequestsData(DataSnapshot requests) {
+        mRequests.clear();
+        for (DataSnapshot request : requests.getChildren()) {
+            String id = request.getValue().toString();
+            // Saves the key for deletion later
+            mRequests.add(new Request(request.getKey(), mFirebaseData.getNameAndIdFromId(id)));
+        }
+        ArrayAdapter<Request> adapter = new ArrayAdapter<Request>(this, android.R.layout.simple_list_item_1, mRequests) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                TextView v = (TextView) super.getView(position, convertView, parent);
+                v.setText(getItem(position).nameAndId.name);
+                return v;
+            }
+        };
+        mRequestsList.setAdapter(adapter);
+    }
+
     /**
      * To be called after connected to Google account.
      *
      * @param accountName the linked account name
      */
     private void connectedToGoogle(String accountName) {
-        mIsConnected.setText(getResources().getString(R.string.connected_to_google));
+        mIsGoogleConnected.setText(getResources().getString(R.string.connected_to_google));
         mGoogleAuthBtn.setVisibility(View.GONE);
 
         // Sets account name in the data object
@@ -201,30 +275,25 @@ public class HomeActivity extends AppCompatActivity
     }
 
     @Override
-    public void onUsersDownloaded() {
-        DialogFragment fragment = new RequestScheduleFragment();
-        fragment.show(getSupportFragmentManager(), "requestSchedule");
-    }
-
-    @Override
-    public void nameSelected(final RequestScheduleFragment.NameToId selected) {
+    public void nameSelected(final FirebaseData.NameAndId selected) {
         mDialog.setMessage("Requesting schedule...");
         // First check if a request has already been issued
-        Firebase reqRef = mFirebaseData.getUsersRef().child(selected.id).child(FirebaseData.REQUESTS_KEY);
+        Firebase reqRef = mFirebaseData.getRequestsRef().child(selected.id);
         reqRef.orderByValue().equalTo(mFirebaseData.getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 Iterator<DataSnapshot> iter = dataSnapshot.getChildren().iterator();
                 if (iter.hasNext()) {
                     // There is already a request
-                    DataSnapshot child = iter.next();
-                    Toast.makeText(HomeActivity.this, "Request has already been made.", Toast.LENGTH_LONG).show();
+                    //DataSnapshot child = iter.next();
+                    Toast.makeText(HomeActivity.this, "Request to " + selected.name + " has already been made.", Toast.LENGTH_LONG).show();
                 } else {
                     // No request has been made so far.
                     // TODO: Check if a connection exists
 
                     // Add a request to the object
-                    mFirebaseData.getUsersRef().child(selected.id).child(FirebaseData.REQUESTS_KEY).push().setValue(mFirebaseData.getUid());
+                    mFirebaseData.getRequestsRef().child(selected.id).push().setValue(mFirebaseData.getUid());
+                    Toast.makeText(HomeActivity.this, "Request made to " + selected.name, Toast.LENGTH_LONG).show();
                 }
                 mDialog.hide();
             }
@@ -254,5 +323,73 @@ public class HomeActivity extends AppCompatActivity
                 mDialog.hide();
             }
         });
+    }
+
+    /**
+     * Accept a connection request. Parameters: position
+     */
+    private class AcceptRequestTask extends AsyncTask<Integer, Void, Void> {
+        @Override
+        protected void onPreExecute() {
+            mDialog.setMessage("Accepting request...");
+            mDialog.show();
+        }
+
+        @Override
+        protected Void doInBackground(Integer... params) {
+            int position = params[0];
+
+            // Add to the connections collection
+            Map<String, Map<String, String>> conn = new HashMap<>();
+
+            Request r = mRequests.get(position);
+
+            Firebase connRef = mFirebaseData.getConnectionsRef().push();
+            Firebase participantsRef = connRef.child(FirebaseData.PARTICIPANTS_KEY);
+
+            participantsRef.push().setValue(r.nameAndId.id);
+            participantsRef.push().setValue(mFirebaseData.getUid());
+
+            /* Add to both users' connections list: */
+            // Self
+            Firebase userConn = mFirebaseData.getUserRef().child(FirebaseData.CONNECTIONS_KEY).push();
+            userConn.child(FirebaseData.CONNECTION_ID_KEY).setValue(connRef.getKey());
+            userConn.child(FirebaseData.CONNECTION_WITH_KEY).setValue(r.nameAndId.id);
+
+            // Other
+            userConn = mFirebaseData.getUsersRef().child(r.nameAndId.id).child(FirebaseData.CONNECTIONS_KEY).push();
+            userConn.child(FirebaseData.CONNECTION_ID_KEY).setValue(connRef.getKey());
+            userConn.child(FirebaseData.CONNECTION_WITH_KEY).setValue(mFirebaseData.getUid());
+
+            // Delete the request
+            mFirebaseData.getRequestsRef().child(mFirebaseData.getUid()).child(r.key).removeValue();
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            mDialog.hide();
+        }
+    }
+
+    public class Request {
+        public String key;
+        public FirebaseData.NameAndId nameAndId;
+
+        public Request(String key, FirebaseData.NameAndId nameAndId) {
+            this.key = key;
+            this.nameAndId = nameAndId;
+        }
+    }
+
+    public class ConnectionProperty {
+        public String id;
+        public FirebaseData.NameAndId with;
+
+        public ConnectionProperty(String id, FirebaseData.NameAndId with) {
+            this.id = id;
+            this.with = with;
+        }
     }
 }

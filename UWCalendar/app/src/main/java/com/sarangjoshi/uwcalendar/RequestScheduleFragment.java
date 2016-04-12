@@ -17,7 +17,6 @@ import android.widget.Toast;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -48,18 +47,18 @@ public class RequestScheduleFragment extends DialogFragment {
 
         FirebaseData fb = FirebaseData.getInstance();
 
-        List<NameToId> objects = new ArrayList<>(fb.getAllUsers());
+        List<FirebaseData.NameAndId> objects = new ArrayList<>(fb.getAllUsers());
 
-        Iterator<NameToId> iter = objects.iterator();
+        Iterator<FirebaseData.NameAndId> iter = objects.iterator();
         while (iter.hasNext()) {
-            NameToId curr = iter.next();
+            FirebaseData.NameAndId curr = iter.next();
             if (curr.id.equals(fb.getUid())) {
                 iter.remove();
                 break;
             }
         }
 
-        ArrayAdapter<NameToId> adapter = new ArrayAdapter<NameToId>(getActivity(),
+        ArrayAdapter<FirebaseData.NameAndId> adapter = new ArrayAdapter<FirebaseData.NameAndId>(getActivity(),
                 android.R.layout.select_dialog_singlechoice, objects) {
             @Override
             public View getView(int pos, View convert, ViewGroup parent) {
@@ -74,17 +73,15 @@ public class RequestScheduleFragment extends DialogFragment {
 
         builder.setTitle("Request schedule.")
                 .setAdapter(adapter, new DialogInterface.OnClickListener() {
-                    List<NameToId> objects;
+                    List<FirebaseData.NameAndId> objects;
 
-                    public DialogInterface.OnClickListener init(List<NameToId> objects) {
+                    public DialogInterface.OnClickListener init(List<FirebaseData.NameAndId> objects) {
                         this.objects = objects;
                         return this;
                     }
 
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        Toast.makeText(getActivity(), "Requesting: " + objects.get(which),
-                                Toast.LENGTH_LONG).show();
                         mListener.nameSelected(objects.get(which));
                     }
                 }.init(objects));
@@ -92,20 +89,7 @@ public class RequestScheduleFragment extends DialogFragment {
     }
 
     public interface NameSelectedListener {
-        void nameSelected(NameToId selected);
+        void nameSelected(FirebaseData.NameAndId selected);
     }
 
-    public static class NameToId {
-        public String name;
-        public String id;
-
-        public NameToId(String name, String id) {
-            this.name = name;
-            this.id = id;
-        }
-
-        public String toString() {
-            return "Name " + name + ", id " + id;
-        }
-    }
 }

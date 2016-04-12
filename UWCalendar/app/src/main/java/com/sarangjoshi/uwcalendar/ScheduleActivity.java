@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -52,7 +51,7 @@ public class ScheduleActivity extends AppCompatActivity {
     ListView mClassesList;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)  {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_schedule);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -94,16 +93,16 @@ public class ScheduleActivity extends AppCompatActivity {
         mClassesList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                new DeleteClassTask(position).execute();
+                new DeleteClassTask().execute(position);
                 return true;
             }
         });
     }
 
     /**
-     * Once data has been retrieved from the database, we can load the relevant views.
+     * When schedule data changes in the database, we can load the relevant views.
      *
-     * @param schedule the snapshot retrieved from the firebase
+     * @param schedule the schedule retrieved from the firebase
      */
     private void setScheduleData(DataSnapshot schedule) {
         // Class information
@@ -150,12 +149,6 @@ public class ScheduleActivity extends AppCompatActivity {
 
         public SaveClassTask() {
             this.mDialog = new ProgressDialog(ScheduleActivity.this);
-            HttpTransport transport = AndroidHttp.newCompatibleTransport();
-            JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-            this.mCalendarService = new com.google.api.services.calendar.Calendar.Builder(
-                    transport, jsonFactory, mGoogleAuthData.getCredentials())
-                    .setApplicationName("UW Calendar")
-                    .build();
         }
 
         @Override
@@ -164,6 +157,13 @@ public class ScheduleActivity extends AppCompatActivity {
 
             this.mDialog.setMessage("Saving...");
             this.mDialog.show();
+
+            HttpTransport transport = AndroidHttp.newCompatibleTransport();
+            JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+            this.mCalendarService = new com.google.api.services.calendar.Calendar.Builder(
+                    transport, jsonFactory, mGoogleAuthData.getCredentials())
+                    .setApplicationName("UW Calendar")
+                    .build();
         }
 
         @Override
@@ -257,18 +257,15 @@ public class ScheduleActivity extends AppCompatActivity {
         }
     }
 
-    private class DeleteClassTask extends AsyncTask<Void, Void, Boolean> {
-        private int mPosition;
-        private SingleClass mClass;
-
+    /**
+     * Deletes a class. Params: position in the lists of the class to delete.
+     */
+    private class DeleteClassTask extends AsyncTask<Integer, Void, Boolean> {
         private com.google.api.services.calendar.Calendar mCalendarService = null;
 
         private ProgressDialog mDialog;
 
-        DeleteClassTask(int position) {
-            this.mPosition = position;
-            this.mClass = mSingleClassList.get(position);
-
+        DeleteClassTask() {
             this.mDialog = new ProgressDialog(ScheduleActivity.this);
             HttpTransport transport = AndroidHttp.newCompatibleTransport();
             JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
@@ -287,10 +284,14 @@ public class ScheduleActivity extends AppCompatActivity {
         }
 
         @Override
-        protected Boolean doInBackground(Void... params) {
+        protected Boolean doInBackground(Integer... params) {
+            int position = params[0];
+            SingleClass singleClass = mSingleClassList.get(position);
+
+
             // First the Google event
             try {
-                mCalendarService.events().delete("primary", mClass.getGoogleEventId()).execute();
+                mCalendarService.events().delete("primary", singleClass.getGoogleEventId()).execute();
             } catch (IOException e) {
                 Log.d("Calendar delete error", e.getMessage());
                 cancel(true);
@@ -298,8 +299,7 @@ public class ScheduleActivity extends AppCompatActivity {
             }
 
             // Then the Database event
-            mFirebaseData.getSchedule().child(mQuarters.get(mPosition) + "/" + mClassIds.get(mPosition))
-                    .removeValue();
+            mFirebaseData.removeClass(mQuarters.get(position), mClassIds.get(position));
             return true;
         }
 

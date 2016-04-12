@@ -37,4 +37,6 @@
     <string name="prompt_change_password">Change Password</string>
     <string name="prompt_old_password">Old Password</string>
     <string name="prompt_new_password">New Password</string>
+    <string name="title_activity_connection">Connection</string>
+    <string name="participants">Participants</string>
 </resources>

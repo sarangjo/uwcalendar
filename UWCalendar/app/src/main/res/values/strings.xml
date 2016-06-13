@@ -28,7 +28,7 @@
     <string name="default_password">abcdef</string>
     <string name="error_message">Error.</string>
     <string name="title_activity_signup">SignupActivity</string>
-    <string name="prompt_person_name">Name</string>
+    <string name="prompt_person_username">Username</string>
     <string name="prompt_logout">Logout</string>
     <string name="request_schedule">Request Schedule</string>
     <string name="action_refresh">Refresh</string>

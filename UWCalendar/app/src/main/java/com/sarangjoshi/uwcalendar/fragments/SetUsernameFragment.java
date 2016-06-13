@@ -1,4 +1,4 @@
-package com.sarangjoshi.uwcalendar;
+package com.sarangjoshi.uwcalendar.fragments;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -10,22 +10,24 @@ import android.support.v4.app.DialogFragment;
 import android.view.LayoutInflater;
 import android.widget.EditText;
 
+import com.sarangjoshi.uwcalendar.R;
+
 /**
- * TODO: add class comment
+ * A fragment to allow a user in the process of signing up to set their username.
  *
  * @author Sarang Joshi
  */
-public class SetNameFragment extends DialogFragment {
-    public interface SetNameListener {
+public class SetUsernameFragment extends DialogFragment {
+    public interface SetUsernameListener {
         void onSignupClick(String name);
     }
 
-    SetNameListener mListener;
+    SetUsernameListener mListener;
 
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         try {
-            mListener = (SetNameListener) activity;
+            mListener = (SetUsernameListener) activity;
         } catch (ClassCastException e) {
             // TODO: Feq!
             throw new ClassCastException("Failed casting");
@@ -38,15 +40,15 @@ public class SetNameFragment extends DialogFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = getActivity().getLayoutInflater();
 
-        final EditText name = (EditText) inflater.inflate(R.layout.dialog_name, null);
+        final EditText username = (EditText) inflater.inflate(R.layout.dialog_username, null);
 
-        builder.setView(name)
-                .setTitle("Set name.")
+        builder.setView(username)
+                .setTitle("Set username.")
                 .setPositiveButton(R.string.action_sign_up, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        // TODO: make sure name is OK
-                        mListener.onSignupClick(name.getText().toString());
+                        // TODO: make sure username is OK
+                        mListener.onSignupClick(username.getText().toString());
                     }
                 });
         return builder.create();

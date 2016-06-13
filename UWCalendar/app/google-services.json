@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "166131534902",
+    "firebase_url": "https://uwcalendar.firebaseio.com",
+    "project_id": "project-4300851654466804184",
+    "storage_bucket": "project-4300851654466804184.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:166131534902:android:1925ffc84a1f43b6",
+        "android_client_info": {
+          "package_name": "com.sarangjoshi.uwcalendar"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "166131534902-t9u47g1v8u61bfhfft7ielcrq4ipbvsb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmhNn23R7LUCnUAz7qVnniZA31DmxEQK0"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

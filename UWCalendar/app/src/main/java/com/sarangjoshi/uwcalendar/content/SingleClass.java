@@ -1,5 +1,7 @@
 package com.sarangjoshi.uwcalendar.content;
 
+import android.content.Intent;
+
 /**
  * TODO: add class comment
  *
@@ -57,5 +59,21 @@ public class SingleClass {
 
     public void setGoogleEventId(String googleEventId) {
         this.googleEventId = googleEventId;
+    }
+
+    /**
+     * Initializes a new SingleClass from the given Intent.
+     *
+     * @param data
+     * @return
+     */
+    public static SingleClass valueOf(Intent data) {
+        return new SingleClass(
+                data.getStringExtra("name"),
+                data.getStringExtra("location"),
+                data.getIntExtra("days", 0),
+                data.getStringExtra("start"),
+                data.getStringExtra("end")
+        );
     }
 }

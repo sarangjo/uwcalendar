@@ -1,4 +1,4 @@
-package com.sarangjoshi.uwcalendar;
+package com.sarangjoshi.uwcalendar.fragments;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -12,7 +12,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 
@@ -47,25 +46,25 @@ public class RequestScheduleFragment extends DialogFragment {
 
         FirebaseData fb = FirebaseData.getInstance();
 
-        List<FirebaseData.NameAndId> objects = new ArrayList<>(fb.getAllUsers());
+        List<FirebaseData.UsernameAndId> objects = new ArrayList<>(fb.getAllUsers());
 
-        Iterator<FirebaseData.NameAndId> iter = objects.iterator();
+        Iterator<FirebaseData.UsernameAndId> iter = objects.iterator();
         while (iter.hasNext()) {
-            FirebaseData.NameAndId curr = iter.next();
+            FirebaseData.UsernameAndId curr = iter.next();
             if (curr.id.equals(fb.getUid())) {
                 iter.remove();
                 break;
             }
         }
 
-        ArrayAdapter<FirebaseData.NameAndId> adapter = new ArrayAdapter<FirebaseData.NameAndId>(getActivity(),
+        ArrayAdapter<FirebaseData.UsernameAndId> adapter = new ArrayAdapter<FirebaseData.UsernameAndId>(getActivity(),
                 android.R.layout.select_dialog_singlechoice, objects) {
             @Override
             public View getView(int pos, View convert, ViewGroup parent) {
                 LayoutInflater inflater = getActivity().getLayoutInflater();
                 View v = inflater.inflate(android.R.layout.select_dialog_item, null);
 
-                ((TextView) v.findViewById(android.R.id.text1)).setText(getItem(pos).name);
+                ((TextView) v.findViewById(android.R.id.text1)).setText(getItem(pos).username);
 
                 return v;
             }
@@ -73,23 +72,23 @@ public class RequestScheduleFragment extends DialogFragment {
 
         builder.setTitle("Request schedule.")
                 .setAdapter(adapter, new DialogInterface.OnClickListener() {
-                    List<FirebaseData.NameAndId> objects;
+                    List<FirebaseData.UsernameAndId> objects;
 
-                    public DialogInterface.OnClickListener init(List<FirebaseData.NameAndId> objects) {
+                    public DialogInterface.OnClickListener init(List<FirebaseData.UsernameAndId> objects) {
                         this.objects = objects;
                         return this;
                     }
 
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        mListener.nameSelected(objects.get(which));
+                        mListener.usernameSelected(objects.get(which));
                     }
                 }.init(objects));
         return builder.create();
     }
 
     public interface NameSelectedListener {
-        void nameSelected(FirebaseData.NameAndId selected);
+        void usernameSelected(FirebaseData.UsernameAndId selected);
     }
 
 }

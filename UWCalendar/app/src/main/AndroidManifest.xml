@@ -60,14 +60,6 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.sarangjoshi.uwcalendar.HomeActivity" />
         </activity>
-        <activity
-            android:name=".ConnectionActivity"
-            android:label="@string/title_activity_connection"
-            android:parentActivityName=".HomeActivity" >
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.sarangjoshi.uwcalendar.HomeActivity" />
-        </activity>
     </application>
 
 </manifest>

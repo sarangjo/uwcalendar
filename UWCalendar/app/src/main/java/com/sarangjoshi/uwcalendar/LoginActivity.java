@@ -3,10 +3,6 @@ package com.sarangjoshi.uwcalendar;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,32 +11,35 @@ import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
-import com.firebase.client.AuthData;
-import com.firebase.client.Firebase;
-import com.firebase.client.FirebaseError;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
-
-import java.util.Map;
+import com.sarangjoshi.uwcalendar.fragments.SetUsernameFragment;
 
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity implements SetNameFragment.SetNameListener {
-    private static final int SIGN_UP = 1;
+public class LoginActivity extends AppCompatActivity implements SetUsernameFragment.SetUsernameListener {
+    private static final String TAG = "LoginActivity";
 
-    // UI references.
+    // UI
     private AutoCompleteTextView mEmailView;
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
 
-    private FirebaseData mFirebaseData;
+    private FirebaseData fb;
+    private FirebaseAuth mAuth;
+    private FirebaseAuth.AuthStateListener mAuthListener;
 
     private String mEmail, mPass;
 
@@ -74,7 +73,40 @@ public class LoginActivity extends AppCompatActivity implements SetNameFragment.
         mProgressView = findViewById(R.id.login_progress);
 
         // Firebase operations
-        mFirebaseData = FirebaseData.getInstance();
+        fb = FirebaseData.getInstance();
+        mAuth = FirebaseAuth.getInstance();
+
+        mAuthListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                FirebaseUser user = firebaseAuth.getCurrentUser();
+                if (user != null) {
+                    // Logged in
+                    fb.updateCurrentUser();
+
+                    Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
+                    startActivity(intent);
+                    finish();
+                } else {
+                    // Logged out
+                    Toast.makeText(LoginActivity.this, "Logged out.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        };
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mAuth.addAuthStateListener(mAuthListener);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (mAuthListener != null) {
+            mAuth.removeAuthStateListener(mAuthListener);
+        }
     }
 
     private class ConnectToDbListener implements View.OnClickListener {
@@ -127,57 +159,62 @@ public class LoginActivity extends AppCompatActivity implements SetNameFragment.
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             if (view.getId() == R.id.sign_in_button) {
-                login();
+                attemptLogin();
             } else if (view.getId() == R.id.sign_up_button) {
-                DialogFragment fragment = new SetNameFragment();
+                DialogFragment fragment = new SetUsernameFragment();
                 fragment.show(getSupportFragmentManager(), "signup_name");
             }
         }
     }
 
-    public void onSignupClick(final String name) {
+    /**
+     * Signs up a new user, given their name. This is called from the fragment that is opened when
+     * the Signup button is clicked.
+     */
+    public void onSignupClick(final String username) {
         showProgress(true);
-        mFirebaseData.getRef().createUser(mEmail, mPass, new Firebase.ValueResultHandler<Map<String, Object>>() {
-            @Override
-            public void onSuccess(Map<String, Object> result) {
-                Log.d("Created user account", result.get("uid").toString());
+        mAuth.createUserWithEmailAndPassword(mEmail, mPass)
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        Log.d(TAG, "createUser: " + task.isSuccessful());
 
-                // Store the user's name
-                mFirebaseData.getUsersRef().child(result.get("uid").toString()).child("name").setValue(name);
+                        if (task.isSuccessful()) {
+                            // Store the user's name
+                            AuthResult r = task.getResult();
 
-                login();
-            }
+                            fb.getUsersRef().child(r.getUser().getUid()).child(FirebaseData.USERNAME_KEY).setValue(username);
+                            attemptLogin();
+                        } else {
+                            // there was an error
+                            Toast.makeText(LoginActivity.this, "Signup error", Toast.LENGTH_SHORT).show();
+                            showProgress(false);
+                        }
 
-            @Override
-            public void onError(FirebaseError firebaseError) {
-                // there was an error
-                Log.d("Signup error", firebaseError.getMessage());
-                showProgress(false);
-            }
-        });
+                    }
+                });
     }
 
-    private void login() {
+    /**
+     * Attempts to log the user in based on the email and password fields.
+     */
+    private void attemptLogin() {
         showProgress(true);
-        mFirebaseData.getRef().authWithPassword(mEmail, mPass, new Firebase.AuthResultHandler() {
-            @Override
-            public void onAuthenticated(AuthData authData) {
-                Log.d("Logged in", authData.getUid());
-                mFirebaseData.saveAuthData(authData);
+        mAuth.signInWithEmailAndPassword(mEmail, mPass)
+                .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        Log.d(TAG, "signInUser: " + task.isSuccessful());
 
-                // Go to home page
-                Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-                startActivity(intent);
-                finish();
-            }
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "signInUser", task.getException());
 
-            @Override
-            public void onAuthenticationError(FirebaseError firebaseError) {
-                // there was an error
-                Log.d("Login error", firebaseError.getMessage());
-                showProgress(false);
-            }
-        });
+                            // there was an error
+                            Toast.makeText(LoginActivity.this, "Login error", Toast.LENGTH_SHORT).show();
+                            showProgress(false);
+                        }
+                    }
+                });
     }
 
     private boolean isEmailValid(String email) {
@@ -226,4 +263,3 @@ public class LoginActivity extends AppCompatActivity implements SetNameFragment.
         }
     }
 }
-

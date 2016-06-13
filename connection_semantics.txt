@@ -1,0 +1,9 @@
+Connection semantics
+--------------------
+Connection
+    List of Days
+
+    Day
+        List of StartTimes
+        * each StartTime denotes the beginning of a different kind of period of the day
+        * StartTime is comparable, sorted

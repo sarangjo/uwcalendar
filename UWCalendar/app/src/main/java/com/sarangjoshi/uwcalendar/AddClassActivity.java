@@ -16,16 +16,13 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.TimePicker;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import com.sarangjoshi.uwcalendar.data.ScheduleData;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
 
 public class AddClassActivity extends AppCompatActivity {
 
@@ -69,15 +66,12 @@ public class AddClassActivity extends AppCompatActivity {
         newFragment.show(getSupportFragmentManager(), "timePicker");
     }
 
-    // M, T, W, Th, F
-    int[] dbDaysMap = {1, 2, 4, 8, 16};
-
     public int getDays() {
         int days = 0;
         for (int i = 0; i < mCheckboxes.length; i++) {
             CheckBox b = mCheckboxes[i];
             if (b.isChecked()) {
-                days = days | dbDaysMap[i];
+                days = days | ScheduleData.DAYS_MAP[i];
             }
         }
         return days;
@@ -152,12 +146,12 @@ public class AddClassActivity extends AppCompatActivity {
 
             data.putExtra("name", mClassName.getText().toString());
             data.putExtra("location", mClassLocation.getText().toString());
-            data.putExtra("days",getDays());
+            data.putExtra("days", getDays());
             data.putExtra("start", mTimes[0]);
             data.putExtra("end", mTimes[1]);
 
             // TODO: update to actually be a quarter
-            data.putExtra("quarter", "sp16");
+            data.putExtra("quarter", ScheduleData.getInstance().getCurrentQuarter());
 
             setResult(RESULT_OK, data);
 
@@ -165,7 +159,7 @@ public class AddClassActivity extends AppCompatActivity {
         }
     }
 
-    private List<String> checkErrors()   {
+    private List<String> checkErrors() {
         List<String> myErrors = new ArrayList<>();
 
         if (mClassName.getText().toString().equals("")) {

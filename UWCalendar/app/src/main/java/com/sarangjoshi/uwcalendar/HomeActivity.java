@@ -23,7 +23,6 @@ import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.api.client.util.Value;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -48,6 +47,8 @@ import java.util.Map;
  */
 public class HomeActivity extends AppCompatActivity
         implements RequestScheduleFragment.NameSelectedListener, ChangePasswordFragment.ChangePasswordListener, Schedule.RetrieveSchedulesListener, FirebaseData.UsersLoadedListener {
+    private static final String TAG = "HomeActivity";
+
     //Singletons
     private FirebaseData fb;
     private GoogleAuthData goog;
@@ -77,42 +78,46 @@ public class HomeActivity extends AppCompatActivity
         fb.setUsersListener(this);
 
         // Google auth
-        mGoogleAuthBtn = (Button) findViewById(R.id.connect_to_google_btn);
-        mGoogleAuthBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(HomeActivity.this, GoogleAuthActivity.class);
-                startActivityForResult(intent, GoogleAuthData.GOOGLE_AUTH_REQUEST);
-            }
-        });
-        goog = GoogleAuthData.getInstance();
-        goog.setupCredentials(getApplicationContext());
+        /*    mGoogleAuthBtn = (Button) findViewById(R.id.connect_to_google_btn);
+            mGoogleAuthBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(HomeActivity.this, GoogleAuthActivity.class);
+                    startActivityForResult(intent, GoogleAuthData.GOOGLE_AUTH_REQUEST);
+                }
+            });
+            goog = GoogleAuthData.getInstance();
+            goog.setupCredentials(getApplicationContext());
 
-        mIsGoogleConnected = (TextView) findViewById(R.id.is_connected_to_google_view);
+            mIsGoogleConnected = (TextView) findViewById(R.id.is_connected_to_google_view);
+        */
 
         // Get initial user-specific data
-        fb.getCurrentUserRef().addListenerForSingleValueEvent(new ValueEventListener() {
+        fb.getCurrentUserRef().addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
-                if (snapshot.child(FirebaseData.GOOGLEAUTH_KEY).exists()) {
-                    // TODO: finish
-                    connectedToGoogle(snapshot.child(FirebaseData.GOOGLEAUTH_KEY).getValue().toString());
-                } else {
-                    // NOT CONNECTED
-                    mIsGoogleConnected.setText(getResources().getString(R.string.not_connected_to_google));
-                }
+                /*if (GoogleAuthData.GOOGLE_ENABLED) {
+                    if (snapshot.child(FirebaseData.GOOGLEAUTH_KEY).exists()) {
+                        // TODO: finish
+                        connectedToGoogle(snapshot.child(FirebaseData.GOOGLEAUTH_KEY).getValue().toString());
+                    } else {
+                        // NOT CONNECTED
+                        mIsGoogleConnected.setText(getResources().getString(R.string.not_connected_to_google));
+                    }
+                }*/
 
-                TextView nameTextView = (TextView) findViewById(R.id.name_text_view);
+                TextView usernameTextView = (TextView) findViewById(R.id.username_text_view);
                 try {
-                    nameTextView.setText(snapshot.child(FirebaseData.USERNAME_KEY).getValue().toString());
+                    usernameTextView.setText(snapshot.child(FirebaseData.USERNAME_KEY).getValue().toString());
                 } catch (NullPointerException e) {
-                    nameTextView.setText("Name error");
+                    usernameTextView.setText("Name error");
                 }
             }
 
             @Override
             public void onCancelled(DatabaseError DatabaseError) {
                 // TODO lel
+                Log.d(TAG, "User download cancelled.");
             }
         });
 
@@ -121,7 +126,7 @@ public class HomeActivity extends AppCompatActivity
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 // TODO: Update requests
-                setRequestsData(snapshot);
+                updateRequestsData(snapshot);
             }
 
             @Override
@@ -221,10 +226,10 @@ public class HomeActivity extends AppCompatActivity
     private void updateConnections(DataSnapshot connections) {
         mConnections.clear();
         for (DataSnapshot conn : connections.getChildren()) {
-            // TODO What if names haven't loaded yet?
             String id = conn.child(FirebaseData.CONNECTION_ID_KEY).getValue().toString();
             FirebaseData.UsernameAndId with = fb.getUsernameAndIdFromId(conn.child(FirebaseData.CONNECTION_WITH_KEY).getValue().toString());
             if (with != null) {
+                // Only add the connection if the name has loaded
                 mConnections.add(new ConnectionProperty(id, with));
             }
         }
@@ -240,9 +245,9 @@ public class HomeActivity extends AppCompatActivity
     }
 
     /**
-     * Sets the requests data from a DataSnapshot from the Firebase.
+     * Updates the requests data from a DataSnapshot from the Firebase.
      */
-    private void setRequestsData(DataSnapshot requests) {
+    private void updateRequestsData(DataSnapshot requests) {
         mRequests.clear();
         for (DataSnapshot request : requests.getChildren()) {
             String id = request.getValue().toString();

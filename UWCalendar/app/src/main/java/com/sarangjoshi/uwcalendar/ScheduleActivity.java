@@ -19,7 +19,6 @@ import com.google.firebase.database.ValueEventListener;
 import com.sarangjoshi.uwcalendar.content.Schedule;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
-import com.sarangjoshi.uwcalendar.data.GoogleAuthData;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;
 
 import java.io.IOException;
@@ -27,14 +26,10 @@ import java.io.IOException;
 public class ScheduleActivity extends AppCompatActivity {
     public static final int ADD_CLASS_REQUEST = 2001;
 
-    // Data singletons
-    FirebaseData fb;
-    ScheduleData sched;
-    GoogleAuthData goog;
+    private ListView mClassesList;
 
-    ListView mClassesList;
-    Schedule mSchedule;
-    String quarter;
+    private Schedule mSchedule;
+    private String mQuarter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,20 +40,21 @@ public class ScheduleActivity extends AppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(ScheduleActivity.this, AddClassActivity.class);
-                startActivityForResult(intent, ADD_CLASS_REQUEST);
-            }
-        });
+        if (fab != null) {
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Intent intent = new Intent(ScheduleActivity.this, AddClassActivity.class);
+                    startActivityForResult(intent, ADD_CLASS_REQUEST);
+                }
+            });
+        }
 
         // Singletons
-        sched = ScheduleData.getInstance();
-        fb = FirebaseData.getInstance();
-        goog = GoogleAuthData.getInstance();
+        ScheduleData sched = ScheduleData.getInstance();
+        FirebaseData fb = FirebaseData.getInstance();
 
-        quarter = sched.getCurrentQuarter();
+        mQuarter = sched.getCurrentQuarter();
 
         // Listen to schedule changes
         ValueEventListener scheduleVEL = new ValueEventListener() {
@@ -66,7 +62,7 @@ public class ScheduleActivity extends AppCompatActivity {
             public void onDataChange(DataSnapshot snapshot) {
                 mSchedule = Schedule.valueOf(snapshot);
                 ArrayAdapter<SingleClass> adapter = new ArrayAdapter<SingleClass>(ScheduleActivity.this,
-                        android.R.layout.simple_list_item_1, mSchedule.getClasses(quarter));
+                        android.R.layout.simple_list_item_1, mSchedule.getClasses(mQuarter));
                 mClassesList.setAdapter(adapter);
             }
 
@@ -87,7 +83,7 @@ public class ScheduleActivity extends AppCompatActivity {
                     protected Boolean doInBackground(Integer... params) {
                         int position = params[0];
                         try {
-                            mSchedule.deleteClass(quarter, position);
+                            mSchedule.deleteClass(mQuarter, position);
                         } catch (IOException e) {
                             Log.d("Calendar delete error", e.getMessage());
                             cancel(true);
@@ -124,7 +120,7 @@ public class ScheduleActivity extends AppCompatActivity {
 
                             return true;
                         }
-                    }.execute(data.getStringExtra("quarter"), singleClass);
+                    }.execute(data.getStringExtra(AddClassActivity.QUARTER_KEY), singleClass);
                 }
                 break;
         }

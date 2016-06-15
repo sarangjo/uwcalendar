@@ -2,6 +2,18 @@ package com.sarangjoshi.uwcalendar.content;
 
 import android.content.Intent;
 
+import com.google.api.client.util.DateTime;
+import com.google.api.services.calendar.model.Event;
+import com.google.api.services.calendar.model.EventDateTime;
+import com.sarangjoshi.uwcalendar.AddClassActivity;
+import com.sarangjoshi.uwcalendar.data.ScheduleData;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Locale;
+
 /**
  * TODO: add class comment
  *
@@ -69,11 +81,61 @@ public class SingleClass {
      */
     public static SingleClass valueOf(Intent data) {
         return new SingleClass(
-                data.getStringExtra("name"),
-                data.getStringExtra("location"),
-                data.getIntExtra("days", 0),
-                data.getStringExtra("start"),
-                data.getStringExtra("end")
+                data.getStringExtra(AddClassActivity.NAME_KEY),
+                data.getStringExtra(AddClassActivity.LOCATION_KEY),
+                data.getIntExtra(AddClassActivity.DAYS_KEY, 0),
+                data.getStringExtra(AddClassActivity.START_KEY),
+                data.getStringExtra(AddClassActivity.END_KEY)
         );
+    }
+
+    /**
+     * Manufacture a Google event from the given class details.
+     */
+    public static Event createGoogleEvent(String quarter, SingleClass singleClass) {
+        Event event = new Event().setSummary(singleClass.getName())
+                .setLocation(singleClass.getLocation());
+
+        String[] qtrDetails = ScheduleData.getInstance().getQuarterInfo(quarter);
+
+        // RECURRENCE DETAILS
+        String[] recurrenceDays = {"MO", "TU", "WE", "TH", "FR"};
+        String days = "";
+        int offset = 0;
+        for (int i = 0; i < recurrenceDays.length; i++) {
+            if ((singleClass.getDays() & (1 << i)) != 0) {
+                if (days.isEmpty()) {
+                    offset = i;
+                } else {
+                    days += ",";
+                }
+                days += recurrenceDays[i];
+            }
+        }
+        String endDate = (qtrDetails[1]).replaceAll("-", "");
+        String[] recurrence = new String[]{"RRULE:FREQ=WEEKLY;UNTIL=" + endDate + "T115959Z;WKST=SU;BYDAY=" + days};
+        event.setRecurrence(Arrays.asList(recurrence));
+
+        // Expand start/end time to include full date
+        String monday = qtrDetails[0];  // Start date
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        Calendar c = Calendar.getInstance();
+        try {
+            c.setTime(sdf.parse(monday)); // TODO: timezone?
+        } catch (ParseException ignored) {
+        }
+        c.add(Calendar.DATE, offset);
+
+        String startString = sdf.format(c.getTime()) + "T" + singleClass.getStart() + ":00-07:00";
+        DateTime startDateTime = new DateTime(startString);
+        EventDateTime start = new EventDateTime().setDateTime(startDateTime).setTimeZone("America/Los_Angeles");
+        event.setStart(start);
+
+        String endString = startString.substring(0, 11) + singleClass.getEnd() + startString.substring(16);
+        DateTime endDateTime = new DateTime(endString);
+        EventDateTime end = new EventDateTime().setDateTime(endDateTime).setTimeZone("America/Los_Angeles");
+        event.setEnd(end);
+
+        return event;
     }
 }

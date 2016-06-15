@@ -1,24 +1,19 @@
 package com.sarangjoshi.uwcalendar.content;
 
+import android.annotation.SuppressLint;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
-import com.google.api.client.util.DateTime;
 import com.google.api.services.calendar.model.Event;
-import com.google.api.services.calendar.model.EventDateTime;
 import com.google.firebase.database.DataSnapshot;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.GoogleAuthData;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;
 
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Represents the schedule for a single quarter.
@@ -58,13 +53,36 @@ public class Quarter {
     }
 
     /**
+     * Save a new class to this quarter.
+     */
+    public void saveClass(SingleClass singleClass) throws IOException {
+        /*    // Google
+            // List the next 10 events from the primary calendar.
+            Event event = SingleClass.createGoogleEvent(mName, singleClass);
+
+            String calendarId = "primary";
+            event = goog.getService().events().insert(calendarId, event).execute();
+
+            Log.d("Event created:", event.getId());
+            singleClass.setGoogleEventId(event.getId());
+        */
+
+        // Firebase
+        fb.addClass(mName, singleClass);
+    }
+
+    /**
      * Remove a class from this quarter.
      */
     public void removeClass(int position) throws IOException {
         SingleClass singleClass = mClassList.get(position);
 
         // First the Google event
-        goog.getService().events().delete("primary", singleClass.getGoogleEventId()).execute();
+        /*    String id = singleClass.getGoogleEventId();
+            goog.getService().events().delete("primary", id).execute();
+
+            Log.d("Event removed:", id);
+        */
 
         // Then the Database event
         fb.removeClass(mName, mClassIds.get(position));
@@ -74,23 +92,6 @@ public class Quarter {
         this.mClassIds.remove(position);
     }
 
-    /**
-     * Save a new class to this quarter.
-     */
-    public void saveClass(SingleClass singleClass) throws IOException {
-        // Google
-        // List the next 10 events from the primary calendar.
-        Event event = createGoogleEvent(mName, singleClass);
-
-        String calendarId = "primary";
-        event = goog.getService().events().insert(calendarId, event).execute();
-
-        Log.d("Event created:", event.getId());
-        singleClass.setGoogleEventId(event.getId());
-
-        // Firebase
-        fb.addClass(mName, singleClass);
-    }
 
     /**
      * Get a list of days that represent the day-by-day breakdown of the schedule.
@@ -110,56 +111,6 @@ public class Quarter {
         }
 
         return week;
-    }
-
-    /**
-     * Manufacture a Google event from the given class details.
-     */
-    public static Event createGoogleEvent(String quarter, SingleClass singleClass) {
-        Event event = new Event().setSummary(singleClass.getName())
-                .setLocation(singleClass.getLocation());
-
-        String[] qtrDetails = ScheduleData.getInstance().getQuarterInfo(quarter);
-
-        // RECURRENCE DETAILS
-        String[] recurrenceDays = {"MO", "TU", "WE", "TH", "FR"};
-        String days = "";
-        int offset = 0;
-        for (int i = 0; i < recurrenceDays.length; i++) {
-            if ((singleClass.getDays() & (1 << i)) != 0) {
-                if (days.isEmpty()) {
-                    offset = i;
-                } else {
-                    days += ",";
-                }
-                days += recurrenceDays[i];
-            }
-        }
-        String endDate = (qtrDetails[1]).replaceAll("-", "");
-        String[] recurrence = new String[]{"RRULE:FREQ=WEEKLY;UNTIL=" + endDate + "T115959Z;WKST=SU;BYDAY=" + days};
-        event.setRecurrence(Arrays.asList(recurrence));
-
-        // Expand start/end time to include full date
-        String monday = qtrDetails[0];  // Start date
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-        Calendar c = Calendar.getInstance();
-        try {
-            c.setTime(sdf.parse(monday)); // TODO: timezone?
-        } catch (ParseException ignored) {
-        }
-        c.add(Calendar.DATE, offset);
-
-        String startString = sdf.format(c.getTime()) + "T" + singleClass.getStart() + ":00-07:00";
-        DateTime startDateTime = new DateTime(startString);
-        EventDateTime start = new EventDateTime().setDateTime(startDateTime).setTimeZone("America/Los_Angeles");
-        event.setStart(start);
-
-        String endString = startString.substring(0, 11) + singleClass.getEnd() + startString.substring(16);
-        DateTime endDateTime = new DateTime(endString);
-        EventDateTime end = new EventDateTime().setDateTime(endDateTime).setTimeZone("America/Los_Angeles");
-        event.setEnd(end);
-
-        return event;
     }
 
     /**
@@ -185,13 +136,14 @@ public class Quarter {
         List<Day> week2 = quarter2.getWeek();
 
         // Merge the two weeks
+        List<Day> combinedWeek = new ArrayList<>();
         // TODO
     }
 
     /**
      * Represents a single Day in a schedule.
      */
-    private static class Day {
+    public static class Day {
         /**
          * A sorted list of the segments making up the day.
          */
@@ -212,7 +164,7 @@ public class Quarter {
             Segment curr = null;
             for (int i = 0; i < segments.size(); ++i) {
                 curr = segments.get(i);
-                if (curr.singleClass == null && curr.endHr >= seg.endHr && curr.endMin >= seg.endMin) {
+                if (curr.classes == null && curr.endHr >= seg.endHr && curr.endMin >= seg.endMin) {
                     break;
                 }
             }
@@ -238,22 +190,24 @@ public class Quarter {
     /**
      * End not inclusive. [start, end)
      */
-    private static class Segment implements Comparable<Segment> {
+    public static class Segment implements Comparable<Segment> {
         public static final Segment FREE_DAY = new Segment(0, 0, 24, 0, null);
 
         int startHr, startMin;
         int endHr, endMin;
-        /**
-         * If singleClass == null, this segment is free in the schedule
-         */
-        SingleClass singleClass;
 
-        public Segment(int startHr, int startMin, int endHr, int endMin, SingleClass singleClass) {
+        /**
+         * If classes is empty, this segment is free in the schedule
+         */
+        List<SingleClass> classes;
+
+        public Segment(int startHr, int startMin, int endHr, int endMin, SingleClass c) {
             this.startHr = startHr;
             this.startMin = startMin;
             this.endHr = endHr;
             this.endMin = endMin;
-            this.singleClass = singleClass;
+            this.classes = new ArrayList<>();
+            this.classes.add(c);
         }
 
         /**
@@ -261,18 +215,19 @@ public class Quarter {
          */
         public Segment(String start, String end, SingleClass c) {
             String[] times = start.split(":");
-            startHr = Integer.parseInt(times[0]);
-            startMin = Integer.parseInt(times[1]);
-
             String[] endTimes = end.split(":");
-            endHr = Integer.parseInt(endTimes[0]);
-            endMin = Integer.parseInt(endTimes[1]);
 
-            singleClass = c;
+            this.startHr = Integer.parseInt(times[0]);
+            this.startMin = Integer.parseInt(times[1]);
+            this.endHr = Integer.parseInt(endTimes[0]);
+            this.endMin = Integer.parseInt(endTimes[1]);
+
+            this.classes = new ArrayList<>();
+            this.classes.add(c);
         }
 
         @Override
-        public int compareTo(Segment another) {
+        public int compareTo(@NonNull Segment another) {
             if (startHr == another.startHr) {
                 if (startMin == another.startMin) {
                     if (endHr == another.endHr) {
@@ -288,6 +243,7 @@ public class Quarter {
         /**
          * Returns a String representation of this Segment.
          */
+        @SuppressLint("DefaultLocale")
         public String toString() {
             return String.format("%d:%d to %d:%d", startHr, startMin, endHr, endMin);
         }

@@ -1,5 +1,6 @@
 package com.sarangjoshi.uwcalendar;
 
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
@@ -10,6 +11,7 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -25,6 +27,12 @@ import java.util.Calendar;
 import java.util.List;
 
 public class AddClassActivity extends AppCompatActivity {
+    public static final String NAME_KEY = "name";
+    public static final String LOCATION_KEY = "location";
+    public static final String DAYS_KEY = "days";
+    public static final String START_KEY = "start";
+    public static final String END_KEY = "end";
+    public static final String QUARTER_KEY = "quarter";
 
     Button mStartTimePicker, mEndTimePicker;
     EditText mClassName, mClassLocation;
@@ -63,6 +71,9 @@ public class AddClassActivity extends AppCompatActivity {
 
     public void showTimePickerDialog(View v) {
         DialogFragment newFragment = new TimePickerFragment(v.getId() == R.id.start_time_picker);
+        /*Bundle args = new Bundle();
+        args.putBoolean(TimePickerFragment.START_KEY, v.getId() == R.id.start_time_picker);
+        newFragment.setArguments(new Bundle());*/
         newFragment.show(getSupportFragmentManager(), "timePicker");
     }
 
@@ -77,6 +88,7 @@ public class AddClassActivity extends AppCompatActivity {
         return days;
     }
 
+    @SuppressLint("ValidFragment")
     private class TimePickerFragment extends DialogFragment
             implements TimePickerDialog.OnTimeSetListener {
         private boolean isStart;
@@ -144,14 +156,14 @@ public class AddClassActivity extends AppCompatActivity {
             // Pass the data back to the parent
             Intent data = new Intent();
 
-            data.putExtra("name", mClassName.getText().toString());
-            data.putExtra("location", mClassLocation.getText().toString());
-            data.putExtra("days", getDays());
-            data.putExtra("start", mTimes[0]);
-            data.putExtra("end", mTimes[1]);
+            data.putExtra(NAME_KEY, mClassName.getText().toString());
+            data.putExtra(LOCATION_KEY, mClassLocation.getText().toString());
+            data.putExtra(DAYS_KEY, getDays());
+            data.putExtra(START_KEY, mTimes[0]);
+            data.putExtra(END_KEY, mTimes[1]);
 
-            // TODO: update to actually be a quarter
-            data.putExtra("quarter", ScheduleData.getInstance().getCurrentQuarter());
+            // TODO: update to actually be a quarter chosen by the user
+            data.putExtra(QUARTER_KEY, ScheduleData.getInstance().getCurrentQuarter());
 
             setResult(RESULT_OK, data);
 
@@ -159,13 +171,16 @@ public class AddClassActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Returns a collection of the errors.
+     */
     private List<String> checkErrors() {
         List<String> myErrors = new ArrayList<>();
 
-        if (mClassName.getText().toString().equals("")) {
+        if (mClassName.getText().toString().trim().isEmpty()) {
             myErrors.add("Enter a valid class name.");
         }
-        if (mClassLocation.getText().toString().equals("")) {
+        if (mClassLocation.getText().toString().trim().isEmpty()) {
             myErrors.add("Enter a valid class location.");
         }
 

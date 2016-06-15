@@ -40,6 +40,7 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
     private FirebaseData fb;
     private FirebaseAuth mAuth;
     private FirebaseAuth.AuthStateListener mAuthListener;
+    private boolean mLoggedIn = false;
 
     private String mEmail, mPass;
 
@@ -84,9 +85,14 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
                     // Logged in
                     fb.updateCurrentUser();
 
-                    Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-                    startActivity(intent);
-                    finish();
+                    Toast.makeText(LoginActivity.this, "Logged in.", Toast.LENGTH_SHORT).show();
+
+                    if (!mLoggedIn) {
+                        mLoggedIn = true;
+                        Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
+                        startActivity(intent);
+                        finish();
+                    }
                 } else {
                     // Logged out
                     Toast.makeText(LoginActivity.this, "Logged out.", Toast.LENGTH_SHORT).show();

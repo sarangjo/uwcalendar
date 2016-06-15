@@ -13,15 +13,10 @@
           "package_name": "com.sarangjoshi.uwcalendar"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "166131534902-t9u47g1v8u61bfhfft7ielcrq4ipbvsb.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAmhNn23R7LUCnUAz7qVnniZA31DmxEQK0"
+          "current_key": "AIzaSyBThL-MW6RbpEUWF4Hx-zL8qajiEw999Rc"
         }
       ],
       "services": {

@@ -34,6 +34,13 @@ public class Schedule {
     }
 
     /**
+     * Saves a new class to this schedule.
+     */
+    public void saveClass(String qtr, SingleClass singleClass) throws IOException {
+        mQuarters.get(qtr).saveClass(singleClass);
+    }
+
+    /**
      * Returns an unmodifiable list of this schedule's classes, if the given quarter has a defined schedule.
      */
     public List<SingleClass> getClasses(String qtr) {
@@ -53,12 +60,6 @@ public class Schedule {
         mQuarters.get(qtr).removeClass(position);
     }
 
-    /**
-     * Saves a new class to this schedule.
-     */
-    public void saveClass(String qtr, SingleClass singleClass) throws IOException {
-        mQuarters.get(qtr).saveClass(singleClass);
-    }
 
     /**
      * Requests the two given id's from Firebase.

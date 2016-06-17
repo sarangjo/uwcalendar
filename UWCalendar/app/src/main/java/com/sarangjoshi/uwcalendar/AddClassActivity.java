@@ -120,7 +120,7 @@ public class AddClassActivity extends AppCompatActivity {
 
         public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
             // TODO: limit start times? earliest // latest
-            String time = String.format("%02d", hourOfDay) + ":" + String.format("%02d", minute);
+            String time = String.format("%02d:%02d", hourOfDay, minute);
             if (isStart) {
                 mTimes[0] = time;
                 mStartTimePicker.setText(mTimes[0]);
@@ -134,14 +134,17 @@ public class AddClassActivity extends AppCompatActivity {
             dismiss();
         }
 
-        private String getEndTime(int hourOfDay, int minute) {
-            minute -= 10;
-            if (minute >= 0) {
-                hourOfDay += 1;
+        /**
+         * Gets the end time given start hour and minute.
+         */
+        private String getEndTime(int startHourOfDay, int startMinute) {
+            startMinute -= 10;
+            if (startMinute >= 0) {
+                startHourOfDay += 1;
             } else {
-                minute += 60;
+                startMinute += 60;
             }
-            return String.format("%02d", hourOfDay) + ":" + String.format("%02d", minute);
+            return String.format("%02d:%02d", startHourOfDay, startMinute);
         }
 
     }

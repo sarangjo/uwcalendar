@@ -1,7 +1,6 @@
 package com.sarangjoshi.uwcalendar;
 
 import com.sarangjoshi.uwcalendar.content.*;
-import com.sarangjoshi.uwcalendar.content.Quarter.*;
 
 import org.junit.Test;
 

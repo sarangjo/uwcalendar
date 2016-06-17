@@ -61,7 +61,7 @@ public class SingleClass {
 
     public String toString() {
         String s = getName() + ", " + getLocation() + ". From " + getStart() + " to " + getEnd();
-        s += ". On days " + getDays();
+        s += ". On days " + getDaysString(null);
         return s;
     }
 
@@ -99,19 +99,8 @@ public class SingleClass {
         String[] qtrDetails = ScheduleData.getInstance().getQuarterInfo(quarter);
 
         // RECURRENCE DETAILS
-        String[] recurrenceDays = {"MO", "TU", "WE", "TH", "FR"};
-        String days = "";
-        int offset = 0;
-        for (int i = 0; i < recurrenceDays.length; i++) {
-            if ((singleClass.getDays() & (1 << i)) != 0) {
-                if (days.isEmpty()) {
-                    offset = i;
-                } else {
-                    days += ",";
-                }
-                days += recurrenceDays[i];
-            }
-        }
+        int[] offset = new int[1];
+        String days = singleClass.getDaysString(offset);
         String endDate = (qtrDetails[1]).replaceAll("-", "");
         String[] recurrence = new String[]{"RRULE:FREQ=WEEKLY;UNTIL=" + endDate + "T115959Z;WKST=SU;BYDAY=" + days};
         event.setRecurrence(Arrays.asList(recurrence));
@@ -124,7 +113,7 @@ public class SingleClass {
             c.setTime(sdf.parse(monday)); // TODO: timezone?
         } catch (ParseException ignored) {
         }
-        c.add(Calendar.DATE, offset);
+        c.add(Calendar.DATE, offset[0]);
 
         String startString = sdf.format(c.getTime()) + "T" + singleClass.getStart() + ":00-07:00";
         DateTime startDateTime = new DateTime(startString);
@@ -137,5 +126,27 @@ public class SingleClass {
         event.setEnd(end);
 
         return event;
+    }
+
+    /**
+     * TODO
+     * @param offset a 1-element array to pass out the offset for this class
+     */
+    private String getDaysString(int[] offset) {
+        String[] recurrenceDays = {"MO", "TU", "WE", "TH", "FR"};
+        String days = "";
+        int val = 0;
+        for (int i = 0; i < recurrenceDays.length; i++) {
+            if ((getDays() & (1 << i)) != 0) {
+                if (days.isEmpty()) {
+                    val = i;
+                } else {
+                    days += ",";
+                }
+                days += recurrenceDays[i];
+            }
+        }
+        if (offset != null && offset.length == 1) offset[0] = val;
+        return days;
     }
 }

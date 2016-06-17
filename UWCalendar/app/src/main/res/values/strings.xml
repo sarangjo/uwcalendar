@@ -39,4 +39,6 @@
     <string name="prompt_new_password">New Password</string>
     <string name="title_activity_connection">Connection</string>
     <string name="participants">Participants</string>
+    <string name="sarang">Sarang</string>
+    <string name="kavya">Kavya</string>
 </resources>

@@ -115,6 +115,20 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
         }
     }
 
+    public void sarangLogin(View view) {
+        mEmail = "sarangj@msn.com";
+        mPass = getResources().getString(R.string.default_password);
+
+        attemptLogin();
+    }
+
+    public void kavyaLogin(View view) {
+        mEmail = "kavyam2@uw.edu";
+        mPass = getResources().getString(R.string.default_password);
+
+        attemptLogin();
+    }
+
     private class ConnectToDbListener implements View.OnClickListener {
         @Override
         public void onClick(View view) {

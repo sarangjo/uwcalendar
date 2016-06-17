@@ -28,7 +28,9 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
+import com.sarangjoshi.uwcalendar.content.Day;
 import com.sarangjoshi.uwcalendar.content.Schedule;
+import com.sarangjoshi.uwcalendar.content.Segment;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.GoogleAuthData;
 import com.sarangjoshi.uwcalendar.fragments.ChangePasswordFragment;
@@ -226,11 +228,15 @@ public class HomeActivity extends AppCompatActivity
     private void updateConnections(DataSnapshot connections) {
         mConnections.clear();
         for (DataSnapshot conn : connections.getChildren()) {
-            String id = conn.child(FirebaseData.CONNECTION_ID_KEY).getValue().toString();
-            FirebaseData.UsernameAndId with = fb.getUsernameAndIdFromId(conn.child(FirebaseData.CONNECTION_WITH_KEY).getValue().toString());
-            if (with != null) {
-                // Only add the connection if the name has loaded
-                mConnections.add(new ConnectionProperty(id, with));
+            try {
+                String id = conn.child(FirebaseData.CONNECTION_ID_KEY).getValue().toString();
+                FirebaseData.UsernameAndId with = fb.getUsernameAndIdFromId(conn.child(FirebaseData.CONNECTION_WITH_KEY).getValue().toString());
+                if (with != null) {
+                    // Only add the connection if the name has loaded
+                    mConnections.add(new ConnectionProperty(id, with));
+                }
+            } catch (NullPointerException ignored) {
+                // TODO what is causing this?
             }
         }
         ArrayAdapter<ConnectionProperty> adapter = new ArrayAdapter<ConnectionProperty>(this, android.R.layout.simple_list_item_1, mConnections) {
@@ -247,6 +253,7 @@ public class HomeActivity extends AppCompatActivity
     /**
      * Updates the requests data from a DataSnapshot from the Firebase.
      */
+
     private void updateRequestsData(DataSnapshot requests) {
         mRequests.clear();
         for (DataSnapshot request : requests.getChildren()) {
@@ -358,7 +365,12 @@ public class HomeActivity extends AppCompatActivity
     @Override
     public void schedulesRetrieved(Request r, Schedule schedule1, Schedule schedule2) {
         // Now that the schedules have been retrieved, compile them
-        Schedule.connect(schedule1, schedule2);
+        Map<String, List<Day>> connectedQuarters = Schedule.connect(schedule1, schedule2);
+
+        if (connectedQuarters.isEmpty()) {
+            // For now, do nothing because there was an issue with the schedules
+            return;  // TODO: what?
+        }
 
         // Add to the connections collection
         DatabaseReference connRef = fb.getConnectionsRef().push();
@@ -369,8 +381,21 @@ public class HomeActivity extends AppCompatActivity
         participantsRef.push().setValue(r.usernameAndId.id);
         participantsRef.push().setValue(fb.getUid());
 
-        // Whether the connection data had been set up
-        //connRef.child(FirebaseData.CONNECTION_SETUP_KEY).setValue(FirebaseData.CONNECTION_NOT_SETUP);
+        // 2. Actual connection data
+        DatabaseReference dataRef = connRef.child(FirebaseData.DATA_KEY);
+
+        // TODO: probably abstract this out
+        for (String qtr : connectedQuarters.keySet()) {
+            DatabaseReference qtrRef = dataRef.child(qtr);
+            List<Day> days = connectedQuarters.get(qtr);
+            for (int i = 0; i < days.size(); ++i) {
+                Day d = days.get(i);
+                DatabaseReference dayRef = qtrRef.child(i + "");
+                for (Segment s : d.getSegments()) {
+                    fb.saveSegment(dayRef.push(), s);
+                }
+            }
+        }
 
         // Add to both users' connections list:
         // Self

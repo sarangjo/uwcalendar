@@ -2,9 +2,7 @@ package com.sarangjoshi.uwcalendar.content;
 
 import android.annotation.SuppressLint;
 import android.support.annotation.NonNull;
-import android.util.Log;
 
-import com.google.api.services.calendar.model.Event;
 import com.google.firebase.database.DataSnapshot;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.GoogleAuthData;
@@ -104,7 +102,7 @@ public class Quarter {
 
             for (SingleClass c : this.mClassList) {
                 int days = c.getDays();
-                if ((days & (1 << i)) == 1) {
+                if ((days & (1 << i)) != 0) {
                     week.get(i).add(c);
                 }
             }
@@ -127,167 +125,20 @@ public class Quarter {
     /**
      * Connect two quarters together.
      */
-    public static void connect(Quarter quarter1, Quarter quarter2) {
+    public static List<Day> connect(Quarter quarter1, Quarter quarter2) {
         if (quarter1 == null || quarter2 == null) {
-            return;
+            return null;
         }
         // Go day by day
-        List<Day> week1 = quarter1.getWeek();
-        List<Day> week2 = quarter2.getWeek();
+        List<Day> mainWeek = quarter1.getWeek();
+        List<Day> otherWeek = quarter2.getWeek();
+
+        for (int i = 0; i < mainWeek.size(); i++) {
+            mainWeek.get(i).combine(otherWeek.get(i));
+        }
+
+        // mainWeek is combined
+        return mainWeek;
     }
 
-    /**
-     * Represents a single Day in a schedule.
-     */
-    public static class Day {
-        /**
-         * A sorted list of the segments making up the day.
-         */
-        private List<Segment> segments;
-
-        public Day() {
-            segments = new ArrayList<>();
-            segments.add(Segment.FREE_DAY);
-        }
-
-        /**
-         * Adds a class to this day, appropriately reorganizing the existing segments in this day.
-         */
-        public void add(SingleClass c) {
-            Segment seg = new Segment(c.getStart(), c.getEnd(), c);
-
-            // Find the first segment that overlaps with seg
-            Segment curr = null;
-            int i;
-            for (i = 0; i < segments.size(); ++i) {
-                curr = segments.get(i);
-                if (compare(curr.endHr, curr.endMin, seg.startHr, seg.startMin) > 0) {
-                    break;
-                }
-            }
-
-            // Break off the part of curr that is before seg
-            if (compare(curr.startHr, curr.startMin, seg.startHr, seg.startMin) != 0) {
-                Segment beforeSeg = new Segment(curr.startHr, curr.startMin, seg.startHr, seg.startMin, null);
-                beforeSeg.classes.addAll(curr.classes);
-                segments.add(i, beforeSeg);
-
-                segments.remove(curr);
-
-                // Restore curr to be whatever is left over
-                Segment beginningOfSeg = new Segment(seg.startHr, seg.startMin, curr.endHr, curr.endMin, null);
-                beginningOfSeg.classes.addAll(curr.classes);
-                segments.add(i + 1, beginningOfSeg);
-
-                i++;
-                curr = beginningOfSeg;
-            }
-
-            // Overlap all segments that are completely within seg
-            while (compare(curr.endHr, curr.endMin, seg.endHr, seg.endMin) <= 0) {
-                // Don't actually split any times, just add the new class
-                curr.classes.add(c);
-
-                ++i;
-                curr = segments.get(i);
-            }
-
-            if (compare(curr.startHr, curr.startMin, seg.endHr, seg.endMin) != 0) {
-                // What overlaps with seg
-                Segment endOfSeg = new Segment(curr.startHr, curr.startMin, seg.endHr, seg.endMin, null);
-                endOfSeg.classes.addAll(seg.classes);
-                segments.add(i, endOfSeg);
-
-                segments.remove(curr);
-
-                // What doesn't overlap
-                Segment afterSeg = new Segment(seg.endHr, seg.endMin, curr.endHr, curr.endMin, null);
-                afterSeg.classes.addAll(curr.classes);
-                segments.add(i + 1, afterSeg);
-            }
-
-            // TODO: Ensure that the segments are always sorted
-        }
-
-        public List<Segment> getSegments() {
-            return Collections.unmodifiableList(segments);
-        }
-
-        public String toString() {
-            return segments.toString();
-        }
-    }
-
-    /**
-     * End not inclusive. [start, end)
-     */
-    public static class Segment implements Comparable<Segment> {
-        public static final Segment FREE_DAY = new Segment(0, 0, 24, 0, null);
-
-        public final int startHr, startMin;
-        public final int endHr, endMin;
-
-        /**
-         * If classes is empty, this segment is free in the schedule
-         */
-        List<SingleClass> classes;
-
-        public Segment(int startHr, int startMin, int endHr, int endMin, SingleClass c) {
-            this.startHr = startHr;
-            this.startMin = startMin;
-            this.endHr = endHr;
-            this.endMin = endMin;
-            this.classes = new ArrayList<>();
-            if (c != null)
-                this.classes.add(c);
-        }
-
-        /**
-         * Creates a new Segment given its start and end times.
-         */
-        public Segment(String start, String end, SingleClass c) {
-            String[] times = start.split(":");
-            String[] endTimes = end.split(":");
-
-            this.startHr = Integer.parseInt(times[0]);
-            this.startMin = Integer.parseInt(times[1]);
-            this.endHr = Integer.parseInt(endTimes[0]);
-            this.endMin = Integer.parseInt(endTimes[1]);
-
-            this.classes = new ArrayList<>();
-            if (c != null)
-                this.classes.add(c);
-        }
-
-        @Override
-        public int compareTo(@NonNull Segment another) {
-            int start = compare(startHr, startMin, another.startHr, another.startMin);
-            if (start == 0) {
-                return compare(endHr, endMin, another.endHr, another.endMin);
-            }
-            return start;
-        }
-
-        public List<SingleClass> getClasses() {
-            return Collections.unmodifiableList(classes);
-        }
-
-        /**
-         * Returns a String representation of this Segment.
-         */
-        @SuppressLint("DefaultLocale")
-        public String toString() {
-            return String.format("%d:%d to %d:%d, with %d classes", startHr, startMin, endHr, endMin, classes.size());
-        }
-    }
-
-    /**
-     * Compares two times.
-     */
-    private static int compare(int hr1, int min1, int hr2, int min2) {
-        int tot1 = hr1 * 60 + min1;
-        int tot2 = hr2 * 60 + min2;
-
-        return tot1 - tot2;
-    }
 }

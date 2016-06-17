@@ -107,12 +107,19 @@ public class Schedule {
 
     /**
      * Connects two schedules.
+     *
+     * @return a map from quarters to connected schedule weeks (represented as Lists of Days
      */
-    public static void connect(Schedule schedule1, Schedule schedule2) {
-        String qtr = ScheduleData.getInstance().getCurrentQuarter();
+    public static Map<String, List<Day>> connect(Schedule schedule1, Schedule schedule2) {
+        Map<String, List<Day>> map = new HashMap<>();
+
         //for (String qtr : .getQuarters()) {
-        Quarter.connect(schedule1.mQuarters.get(qtr), schedule2.mQuarters.get(qtr));
+        String qtr = ScheduleData.getInstance().getCurrentQuarter();
+        List<Day> combinedQtr = Quarter.connect(schedule1.mQuarters.get(qtr), schedule2.mQuarters.get(qtr));
+        map.put(qtr, combinedQtr);
         //}
+
+        return map;
     }
 
     /**

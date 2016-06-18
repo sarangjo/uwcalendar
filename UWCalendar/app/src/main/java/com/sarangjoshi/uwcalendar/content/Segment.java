@@ -3,9 +3,14 @@ package com.sarangjoshi.uwcalendar.content;
 import android.annotation.SuppressLint;
 import android.support.annotation.NonNull;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseReference;
+import com.sarangjoshi.uwcalendar.data.FirebaseData;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * End not inclusive. [start, end)
@@ -21,6 +26,9 @@ public class Segment implements Comparable<Segment> {
      */
     List<SingleClass> classes;
 
+    /**
+     * Creates a new Segment.
+     */
     public Segment(int startHr, int startMin, int endHr, int endMin, SingleClass c) {
         this.startHr = startHr;
         this.startMin = startMin;
@@ -74,8 +82,28 @@ public class Segment implements Comparable<Segment> {
     /**
      * Returns a String representation of this Segment.
      */
-    @SuppressLint("DefaultLocale")
     public String toString() {
-        return String.format("%d:%d to %d:%d, with %d classes", startHr, startMin, endHr, endMin, classes.size());
+        String s = String.format(Locale.US, "%02d:%02d to %02d:%02d.", startHr, startMin, endHr, endMin);
+        for (SingleClass c : classes) {
+            s += " " + c.getName();
+        }
+        return s;
+    }
+
+    /**
+     * Given a snapshot of a segment reference in a connection, creates a Segment that is the value
+     * of the given reference.
+     */
+    public static Segment valueOf(DataSnapshot segRef) {
+        String start = segRef.child(FirebaseData.START_KEY).getValue().toString();
+        String end = segRef.child(FirebaseData.END_KEY).getValue().toString();
+        List<SingleClass> classes = new ArrayList<>();
+        for (DataSnapshot c : segRef.child(FirebaseData.CLASSES_KEY).getChildren()) {
+            classes.add(SingleClass.createClass(c.getValue().toString()));
+        }
+        Segment s = new Segment(start, end, null);
+        s.classes.addAll(classes);
+
+        return s;
     }
 }

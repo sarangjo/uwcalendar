@@ -47,10 +47,7 @@ public class AddClassActivity extends AppCompatActivity {
         setContentView(R.layout.activity_add_class);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        ActionBar supportActionBar = getSupportActionBar();
-        if (supportActionBar != null)
-            supportActionBar.setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         mTimes = new String[2];
         mTimes[0] = mTimes[1] = "";

@@ -90,7 +90,6 @@ public class Quarter {
         this.mClassIds.remove(position);
     }
 
-
     /**
      * Get a list of days that represent the day-by-day breakdown of the schedule.
      */

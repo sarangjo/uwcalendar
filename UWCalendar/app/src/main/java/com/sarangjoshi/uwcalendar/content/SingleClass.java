@@ -12,7 +12,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * TODO: add class comment
@@ -20,6 +22,8 @@ import java.util.Locale;
  * @author Sarang Joshi
  */
 public class SingleClass {
+    public static final String[] RECURRENCE_DAYS = {"MO", "TU", "WE", "TH", "FR"};
+
     private String name;
     private String location;
     private int days;
@@ -37,6 +41,20 @@ public class SingleClass {
         this.days = days;
         this.start = start;
         this.end = end;
+    }
+
+    private static Map<String, SingleClass> internMap = new HashMap<>();
+
+    /**
+     * Creates a class with the given name. Interned.
+     */
+    public static SingleClass createClass(String name) {
+        if (!internMap.containsKey(name)) {
+            SingleClass c = new SingleClass();
+            c.name = name;
+            internMap.put(name, c);
+        }
+        return internMap.get(name);
     }
 
     public String getName() {
@@ -130,20 +148,20 @@ public class SingleClass {
 
     /**
      * TODO
+     *
      * @param offset a 1-element array to pass out the offset for this class
      */
     private String getDaysString(int[] offset) {
-        String[] recurrenceDays = {"MO", "TU", "WE", "TH", "FR"};
         String days = "";
         int val = 0;
-        for (int i = 0; i < recurrenceDays.length; i++) {
+        for (int i = 0; i < RECURRENCE_DAYS.length; i++) {
             if ((getDays() & (1 << i)) != 0) {
                 if (days.isEmpty()) {
                     val = i;
                 } else {
                     days += ",";
                 }
-                days += recurrenceDays[i];
+                days += RECURRENCE_DAYS[i];
             }
         }
         if (offset != null && offset.length == 1) offset[0] = val;

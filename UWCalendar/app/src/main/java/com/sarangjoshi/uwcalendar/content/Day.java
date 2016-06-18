@@ -1,5 +1,8 @@
 package com.sarangjoshi.uwcalendar.content;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseReference;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -95,5 +98,16 @@ public class Day {
                 for (SingleClass c : seg.classes) add(c);
             }
         }
+    }
+
+    public static Day valueOf(DataSnapshot snapshot) {
+        Day d = new Day();
+        d.segments.clear();
+
+        for (DataSnapshot seg : snapshot.getChildren()) {
+            d.segments.add(Segment.valueOf(seg));
+        }
+
+        return d;
     }
 }

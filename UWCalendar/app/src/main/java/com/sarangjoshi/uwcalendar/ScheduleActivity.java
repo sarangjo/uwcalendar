@@ -20,6 +20,7 @@ import com.sarangjoshi.uwcalendar.content.Schedule;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;
+import com.sarangjoshi.uwcalendar.network.NetworkOps;
 
 import java.io.IOException;
 
@@ -78,7 +79,7 @@ public class ScheduleActivity extends AppCompatActivity {
         mClassesList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                new OperationTask<Integer>("Deleting...") {
+                new NetworkOps.OperationTask<Integer>(ScheduleActivity.this, "Deleting...") {
                     @Override
                     protected Boolean doInBackground(Integer... params) {
                         int position = params[0];
@@ -105,7 +106,7 @@ public class ScheduleActivity extends AppCompatActivity {
                 if (resultCode == RESULT_OK) {
                     // Save class to database and Google
                     SingleClass singleClass = SingleClass.valueOf(data);
-                    new OperationTask<Object>("Saving...") {
+                    new NetworkOps.OperationTask<Object>(this, "Saving...") {
                         protected Boolean doInBackground(Object... params) {
                             SingleClass singleClass = (SingleClass) params[1];
                             String quarter = params[0].toString();
@@ -123,39 +124,6 @@ public class ScheduleActivity extends AppCompatActivity {
                     }.execute(data.getStringExtra(AddClassActivity.QUARTER_KEY), singleClass);
                 }
                 break;
-        }
-    }
-
-    /**
-     * Represents an asynchronous operation.
-     *
-     * @param <T> the input type
-     */
-    private abstract class OperationTask<T> extends AsyncTask<T, Void, Boolean> {
-        private ProgressDialog mDialog;
-        private String mMessage;
-
-        OperationTask(String message) {
-            this.mDialog = new ProgressDialog(ScheduleActivity.this);
-            this.mMessage = message;
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-
-            this.mDialog.setMessage(mMessage);
-            this.mDialog.show();
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mDialog.dismiss();
-        }
-
-        @Override
-        protected void onCancelled() {
-            mDialog.hide();
         }
     }
 }

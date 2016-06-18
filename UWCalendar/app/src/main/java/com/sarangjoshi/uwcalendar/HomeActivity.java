@@ -175,9 +175,9 @@ public class HomeActivity extends AppCompatActivity
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // TODO: Open connection page
-                /*Intent intent = new Intent(HomeActivity.this, ConnectionActivity.class);
+                Intent intent = new Intent(HomeActivity.this, ConnectionActivity.class);
                 intent.putExtra(FirebaseData.CONNECTION_ID_KEY, mConnections.get(position).id);
-                startActivity(intent);*/
+                startActivity(intent);
             }
         });
         mConnectionsList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {

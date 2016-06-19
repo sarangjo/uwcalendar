@@ -22,12 +22,14 @@ public class Quarter {
     private List<SingleClass> mClassList;
     private List<String> mClassIds;
     private String mName;
+    private String mId;
 
     private FirebaseData fb;
     private GoogleAuthData goog;
 
-    public Quarter(String name) {
+    public Quarter(String userId, String name) {
         this.mName = name;
+        this.mId = userId;
         this.mClassList = new ArrayList<>();
         this.mClassIds = new ArrayList<>();
 
@@ -102,7 +104,7 @@ public class Quarter {
             for (SingleClass c : this.mClassList) {
                 int days = c.getDays();
                 if ((days & (1 << i)) != 0) {
-                    week.get(i).add(c);
+                    week.get(i).add(mId, c);
                 }
             }
         }
@@ -113,8 +115,8 @@ public class Quarter {
     /**
      * Given a DataSnapshot of the quarter, returns a representation of that quarter's schedule.
      */
-    public static Quarter valueOf(DataSnapshot snapshot) {
-        Quarter q = new Quarter(snapshot.getKey());
+    public static Quarter valueOf(String id, DataSnapshot snapshot) {
+        Quarter q = new Quarter(id, snapshot.getKey());
         for (DataSnapshot singleClass : snapshot.getChildren()) {
             q.addClass(singleClass.getValue(SingleClass.class), singleClass.getKey());
         }

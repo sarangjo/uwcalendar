@@ -3,6 +3,7 @@ package com.sarangjoshi.uwcalendar.network;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -10,6 +11,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 import com.sarangjoshi.uwcalendar.ConnectionActivity;
 import com.sarangjoshi.uwcalendar.content.Day;
+import com.sarangjoshi.uwcalendar.content.Schedule;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;
 
@@ -33,6 +35,8 @@ public class NetworkOps {
 
     /**
      * Download a new Connection.
+     *
+     * @param id connection id
      */
     public void requestConnection(String id, final ConnectionLoadedListener listener) {
         FirebaseData.getInstance().getConnectionsRef().child(id).addValueEventListener(new ValueEventListener() {
@@ -58,6 +62,28 @@ public class NetworkOps {
 
     public interface ConnectionLoadedListener {
         void connectionLoaded(List<Day> connection);
+    }
+
+    /**
+     * Download a new Schedule.
+     */
+    public void requestSchedule(final ScheduleLoadedListener listener) {
+        final FirebaseData fb = FirebaseData.getInstance();
+        fb.setScheduleValueListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                listener.scheduleLoaded(Schedule.valueOf(fb.getUid(), snapshot));
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.d("Download error", databaseError.getMessage());
+            }
+        });
+    }
+
+    public interface ScheduleLoadedListener {
+        void scheduleLoaded(Schedule s);
     }
 
     /**

@@ -24,10 +24,12 @@ public class Schedule {
     FirebaseData fb;
 
     // Data
-    Map<String, Quarter> mQuarters;
+    private Map<String, Quarter> mQuarters;
+    private String mId;
 
-    public Schedule() {
+    public Schedule(String id) {
         mQuarters = new HashMap<>();
+        mId = id;
 
         goog = GoogleAuthData.getInstance();
         fb = FirebaseData.getInstance();
@@ -45,7 +47,7 @@ public class Schedule {
      */
     public List<SingleClass> getClasses(String qtr) {
         if (!mQuarters.containsKey(qtr))
-            mQuarters.put(qtr, new Quarter(qtr));
+            mQuarters.put(qtr, new Quarter(mId, qtr));
         return mQuarters.get(qtr).getClasses();
     }
 
@@ -71,12 +73,12 @@ public class Schedule {
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
-                        final Schedule schedule1 = Schedule.valueOf(dataSnapshot);
+                        final Schedule schedule1 = Schedule.valueOf(fb.getUid(), dataSnapshot);
                         fb.getSchedulesRef().child(r.usernameAndId.id)
                                 .addListenerForSingleValueEvent(new ValueEventListener() {
                                     @Override
                                     public void onDataChange(DataSnapshot dataSnapshot) {
-                                        Schedule schedule2 = Schedule.valueOf(dataSnapshot);
+                                        Schedule schedule2 = Schedule.valueOf(r.usernameAndId.id, dataSnapshot);
                                         listener.schedulesRetrieved(r, schedule1, schedule2);
                                     }
 
@@ -97,10 +99,10 @@ public class Schedule {
     /**
      * Converts a DataSnapshot into a Schedule object.
      */
-    public static Schedule valueOf(DataSnapshot snapshot) {
-        Schedule s = new Schedule();
+    public static Schedule valueOf(String id, DataSnapshot snapshot) {
+        Schedule s = new Schedule(id);
         for (DataSnapshot qtrSnapshot : snapshot.getChildren()) {
-            s.mQuarters.put(qtrSnapshot.getKey(), Quarter.valueOf(qtrSnapshot));
+            s.mQuarters.put(qtrSnapshot.getKey(), Quarter.valueOf(id, qtrSnapshot));
         }
         return s;
     }

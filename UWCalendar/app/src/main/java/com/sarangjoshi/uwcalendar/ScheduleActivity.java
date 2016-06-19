@@ -1,8 +1,6 @@
 package com.sarangjoshi.uwcalendar;
 
-import android.app.ProgressDialog;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -13,9 +11,6 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.ValueEventListener;
 import com.sarangjoshi.uwcalendar.content.Schedule;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
@@ -24,7 +19,7 @@ import com.sarangjoshi.uwcalendar.network.NetworkOps;
 
 import java.io.IOException;
 
-public class ScheduleActivity extends AppCompatActivity {
+public class ScheduleActivity extends AppCompatActivity implements NetworkOps.ScheduleLoadedListener {
     public static final int ADD_CLASS_REQUEST = 2001;
 
     private ListView mClassesList;
@@ -53,29 +48,14 @@ public class ScheduleActivity extends AppCompatActivity {
 
         // Singletons
         ScheduleData sched = ScheduleData.getInstance();
-        FirebaseData fb = FirebaseData.getInstance();
+        final FirebaseData fb = FirebaseData.getInstance();
 
         mQuarter = sched.getCurrentQuarter();
 
         // Listen to schedule changes
-        ValueEventListener scheduleVEL = new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot snapshot) {
-                mSchedule = Schedule.valueOf(snapshot);
-                ArrayAdapter<SingleClass> adapter = new ArrayAdapter<SingleClass>(ScheduleActivity.this,
-                        android.R.layout.simple_list_item_1, mSchedule.getClasses(mQuarter));
-                mClassesList.setAdapter(adapter);
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.d("Download error", databaseError.getMessage());
-            }
-        };
-        fb.setScheduleValueListener(scheduleVEL);
+        NetworkOps.getInstance().requestSchedule(this);
 
         mClassesList = (ListView) findViewById(R.id.classes_list);
-        mSchedule = new Schedule();
         mClassesList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
@@ -125,5 +105,13 @@ public class ScheduleActivity extends AppCompatActivity {
                 }
                 break;
         }
+    }
+
+    @Override
+    public void scheduleLoaded(Schedule s) {
+        mSchedule = s;
+        ArrayAdapter<SingleClass> adapter = new ArrayAdapter<SingleClass>(ScheduleActivity.this,
+                android.R.layout.simple_list_item_1, mSchedule.getClasses(mQuarter));
+        mClassesList.setAdapter(adapter);
     }
 }

@@ -391,7 +391,12 @@ public class HomeActivity extends AppCompatActivity
             for (int i = 0; i < days.size(); ++i) {
                 Day d = days.get(i);
                 DatabaseReference dayRef = qtrRef.child(i + "");
-                for (Segment s : d.getSegments()) {
+
+                List<Segment> segs = d.getSegments();
+                for (Segment s : segs) {
+                    // Special case to save a fully empty day
+                    if (s.classesMap.isEmpty() && segs.size() != 1)
+                        continue;
                     fb.saveSegment(dayRef.push(), s);
                 }
             }

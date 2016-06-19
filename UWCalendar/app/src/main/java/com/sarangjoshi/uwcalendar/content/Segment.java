@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * End not inclusive. [start, end)
@@ -24,7 +25,12 @@ public class Segment implements Comparable<Segment> {
     /**
      * If classes is empty, this segment is free in the schedule
      */
-    List<SingleClass> classes;
+    public List<SingleClass> classes;
+
+    /**
+     * A map from user ID to class.
+     */
+    public Map<String, SingleClass> classesMap;
 
     /**
      * Creates a new Segment.

@@ -31,6 +31,7 @@ public class SingleClass {
     private String end;
 
     private String googleEventId;
+    private String firebaseId;
 
     public SingleClass() {
     }

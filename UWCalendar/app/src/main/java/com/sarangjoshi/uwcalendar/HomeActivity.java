@@ -59,7 +59,6 @@ public class HomeActivity extends AppCompatActivity
     private ListView mRequestsList;
     private ListView mConnectionsList;
     private TextView mIsGoogleConnected;
-    private Button mGoogleAuthBtn;
 
     private ProgressDialog mDialog;
 
@@ -79,23 +78,8 @@ public class HomeActivity extends AppCompatActivity
         fb = FirebaseData.getInstance();
         fb.setUsersListener(this);
 
-        // Google auth
-        /*    mGoogleAuthBtn = (Button) findViewById(R.id.connect_to_google_btn);
-            mGoogleAuthBtn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(HomeActivity.this, GoogleAuthActivity.class);
-                    startActivityForResult(intent, GoogleAuthData.GOOGLE_AUTH_REQUEST);
-                }
-            });
-            goog = GoogleAuthData.getInstance();
-            goog.setupCredentials(getApplicationContext());
-
-            mIsGoogleConnected = (TextView) findViewById(R.id.is_connected_to_google_view);
-        */
-
         // Get initial user-specific data
-        fb.getCurrentUserRef().addValueEventListener(new ValueEventListener() {
+        fb.getCurrentUserRef().child(FirebaseData.USERNAME_KEY).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 /*if (GoogleAuthData.GOOGLE_ENABLED) {
@@ -110,7 +94,7 @@ public class HomeActivity extends AppCompatActivity
 
                 TextView usernameTextView = (TextView) findViewById(R.id.username_text_view);
                 try {
-                    usernameTextView.setText(snapshot.child(FirebaseData.USERNAME_KEY).getValue().toString());
+                    usernameTextView.setText(snapshot.getValue().toString());
                 } catch (NullPointerException e) {
                     usernameTextView.setText("Name error");
                 }
@@ -124,7 +108,7 @@ public class HomeActivity extends AppCompatActivity
         });
 
         // Listen to user request changes
-        ValueEventListener reqVEL = new ValueEventListener() {
+        fb.setRequestsValueListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 // TODO: Update requests
@@ -135,8 +119,7 @@ public class HomeActivity extends AppCompatActivity
             public void onCancelled(DatabaseError DatabaseError) {
                 Log.d("Download error", DatabaseError.getMessage());
             }
-        };
-        fb.setRequestsValueListener(reqVEL);
+        });
 
         mRequestsList = (ListView) findViewById(R.id.requests_list);
         mRequestsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {

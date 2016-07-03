@@ -1,16 +1,11 @@
 package com.sarangjoshi.uwcalendar.content;
 
-import android.annotation.SuppressLint;
 import android.support.annotation.NonNull;
 
 import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseReference;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -22,8 +17,6 @@ public class Segment implements Comparable<Segment> {
 
     public final int startHr, startMin;
     public final int endHr, endMin;
-
-    //public List<SingleClass> classes;
 
     /**
      * A map from user ID to class.
@@ -81,7 +74,7 @@ public class Segment implements Comparable<Segment> {
     public String toString() {
         String s = String.format(Locale.US, "%02d:%02d to %02d:%02d.", startHr, startMin, endHr, endMin);
         for (String user : classesMap.keySet()) {
-            s += classesMap.get(user).getName() + " for " + FirebaseData.getInstance().getUsernameFromId(user);
+            s += " " + classesMap.get(user).getName() + " for " + FirebaseData.getInstance().getUsernameFromId(user);
         }
         return s;
     }

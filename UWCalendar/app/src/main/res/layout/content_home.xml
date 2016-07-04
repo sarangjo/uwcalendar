@@ -39,7 +39,7 @@
             android:text="@string/prompt_logout" />
     </LinearLayout>
 
-    <!--
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -54,9 +54,9 @@
             android:id="@+id/connect_to_google_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:onClick="googleConnect"
             android:text="Connect to Google" />
     </LinearLayout>
-    -->
 
     <Button
         android:layout_width="wrap_content"

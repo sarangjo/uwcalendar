@@ -58,7 +58,6 @@ public class HomeActivity extends AppCompatActivity
     // View/Controller
     private ListView mRequestsList;
     private ListView mConnectionsList;
-    private TextView mIsGoogleConnected;
 
     private ProgressDialog mDialog;
 
@@ -194,8 +193,6 @@ public class HomeActivity extends AppCompatActivity
                     fb.getCurrentUserRef().updateChildren(gAuth);
 
                     Toast.makeText(this, accountName, Toast.LENGTH_LONG).show();
-
-                    connectedToGoogle(accountName);
                 } else if (resultCode == RESULT_CANCELED) {
                     // TODO: do nothing?
                 }
@@ -233,6 +230,8 @@ public class HomeActivity extends AppCompatActivity
         mConnectionsList.setAdapter(adapter);
     }
 
+
+    
     /**
      * Updates the requests data from a DataSnapshot from the Firebase.
      */
@@ -257,16 +256,9 @@ public class HomeActivity extends AppCompatActivity
 
     /**
      * Sets the view to show that the user has connected to Google account.
-     *
-     * @param accountName the linked account name
      */
-    private void connectedToGoogle(String accountName) {
-        mIsGoogleConnected.setText(getResources().getString(R.string.connected_to_google));
-        mGoogleAuthBtn.setVisibility(View.GONE);
-
-        // Sets account name in the data object
-        // TODO:
-        goog.setAccountName(accountName);
+    private void connectedToGoogle() {
+        Toast.makeText(HomeActivity.this, getResources().getString(R.string.connected_to_google), Toast.LENGTH_SHORT).show();
     }
 
     //// BUTTONS CLICK RESPONSES ////
@@ -417,6 +409,10 @@ public class HomeActivity extends AppCompatActivity
             }
         };
         fb.setConnectionsValueListener(connVEL);
+    }
+
+    public void googleConnect(View view) {
+        startActivity(new Intent(this, GoogleAuthActivity.class));
     }
 
     //// INNER CLASSES ////

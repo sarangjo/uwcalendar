@@ -43,15 +43,6 @@
                 android:value="com.sarangjoshi.uwcalendar.ScheduleActivity" />
         </activity>
         <activity
-            android:name=".GoogleAuthActivity"
-            android:label="@string/title_activity_google_auth"
-            android:parentActivityName=".HomeActivity"
-            android:theme="@style/AppTheme.NoActionBar">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.sarangjoshi.uwcalendar.HomeActivity" />
-        </activity>
-        <activity
             android:name=".ScheduleActivity"
             android:label="@string/title_activity_schedule"
             android:parentActivityName=".HomeActivity"

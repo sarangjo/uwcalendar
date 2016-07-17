@@ -13,10 +13,31 @@
           "package_name": "com.sarangjoshi.uwcalendar"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "166131534902-povbpvcliam3ip5l1oce2ed1hnalkvgt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sarangjoshi.uwcalendar",
+            "certificate_hash": "9858693B8EF2F8420565C584B71C90C2525D09E8"
+          }
+        },
+        {
+          "client_id": "166131534902-njeh91o0snct6ro2r4g21vcd0k4qfl0p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sarangjoshi.uwcalendar",
+            "certificate_hash": "EE049937401374C3F57BC55D41922F54C370623E"
+          }
+        },
+        {
+          "client_id": "166131534902-t9u47g1v8u61bfhfft7ielcrq4ipbvsb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyBThL-MW6RbpEUWF4Hx-zL8qajiEw999Rc"
+          "current_key": "AIzaSyBjXm-T0LmLKFrHSIQyDbOLUnKNKy34tEQ"
         }
       ],
       "services": {

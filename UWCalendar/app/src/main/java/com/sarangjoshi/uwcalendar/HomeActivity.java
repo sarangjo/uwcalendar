@@ -21,9 +21,18 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -37,7 +46,6 @@ import com.sarangjoshi.uwcalendar.fragments.ChangePasswordFragment;
 import com.sarangjoshi.uwcalendar.fragments.RequestScheduleFragment;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +59,7 @@ public class HomeActivity extends AppCompatActivity
         implements RequestScheduleFragment.NameSelectedListener, ChangePasswordFragment.ChangePasswordListener, Schedule.RetrieveSchedulesListener, FirebaseData.UsersLoadedListener {
     private static final String TAG = "HomeActivity";
 
-    //Singletons
+    // Singletons
     private FirebaseData fb;
     private GoogleAuthData goog;
 
@@ -92,11 +100,12 @@ public class HomeActivity extends AppCompatActivity
                 }*/
 
                 TextView usernameTextView = (TextView) findViewById(R.id.username_text_view);
-                try {
-                    usernameTextView.setText(snapshot.getValue().toString());
-                } catch (NullPointerException e) {
-                    usernameTextView.setText("Name error");
-                }
+                if (usernameTextView != null)
+                    try {
+                        usernameTextView.setText(snapshot.getValue().toString());
+                    } catch (NullPointerException e) {
+                        usernameTextView.setText(getResources().getString(R.string.name_error));
+                    }
             }
 
             @Override
@@ -179,27 +188,6 @@ public class HomeActivity extends AppCompatActivity
         mDialog = new ProgressDialog(this);
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        // Check which request we're responding to
-        switch (requestCode) {
-            case GoogleAuthData.GOOGLE_AUTH_REQUEST:
-                if (resultCode == RESULT_OK) {
-                    String accountName = data.getStringExtra(GoogleAuthData.ACCOUNT_NAME_KEY);
-
-                    // Save to database
-                    Map<String, Object> gAuth = new HashMap<>();
-                    gAuth.put(FirebaseData.GOOGLEAUTH_KEY, accountName);
-                    fb.getCurrentUserRef().updateChildren(gAuth);
-
-                    Toast.makeText(this, accountName, Toast.LENGTH_LONG).show();
-                } else if (resultCode == RESULT_CANCELED) {
-                    // TODO: do nothing?
-                }
-                break;
-        }
-    }
-
     //// VIEW UPDATE METHODS ////
 
     /**
@@ -230,8 +218,6 @@ public class HomeActivity extends AppCompatActivity
         mConnectionsList.setAdapter(adapter);
     }
 
-
-    
     /**
      * Updates the requests data from a DataSnapshot from the Firebase.
      */
@@ -252,13 +238,6 @@ public class HomeActivity extends AppCompatActivity
             }
         };
         mRequestsList.setAdapter(adapter);
-    }
-
-    /**
-     * Sets the view to show that the user has connected to Google account.
-     */
-    private void connectedToGoogle() {
-        Toast.makeText(HomeActivity.this, getResources().getString(R.string.connected_to_google), Toast.LENGTH_SHORT).show();
     }
 
     //// BUTTONS CLICK RESPONSES ////
@@ -330,7 +309,7 @@ public class HomeActivity extends AppCompatActivity
                             // Password changed! Hurrah.
                             Toast.makeText(HomeActivity.this, "Password changed.", Toast.LENGTH_LONG).show();
                         } else {
-                            Toast.makeText(HomeActivity.this, "Error: " + task.getException(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(HomeActivity.this, "Error", Toast.LENGTH_LONG).show();
                         }
                         mDialog.hide();
                     }
@@ -409,10 +388,6 @@ public class HomeActivity extends AppCompatActivity
             }
         };
         fb.setConnectionsValueListener(connVEL);
-    }
-
-    public void googleConnect(View view) {
-        startActivity(new Intent(this, GoogleAuthActivity.class));
     }
 
     //// INNER CLASSES ////

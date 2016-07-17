@@ -128,6 +128,10 @@ public class FirebaseData {
         return mCurrentUserRef;
     }
 
+    public FirebaseAuth getFirebaseAuth() {
+        return this.mAuth;
+    }
+
     /**
      * Gets the currently signed-in user's universal Firebase ID.
      *

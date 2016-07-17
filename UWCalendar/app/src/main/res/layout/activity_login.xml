@@ -89,6 +89,11 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
+            <com.google.android.gms.common.SignInButton
+                android:id="@+id/connect_to_google_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

@@ -15,20 +15,31 @@ import android.view.View;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.SignInButton;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.GoogleAuthProvider;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
+import com.sarangjoshi.uwcalendar.data.GoogleAuthData;
 import com.sarangjoshi.uwcalendar.fragments.SetUsernameFragment;
 
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity implements SetUsernameFragment.SetUsernameListener {
+public class LoginActivity extends AppCompatActivity implements SetUsernameFragment.SetUsernameListener, GoogleApiClient.OnConnectionFailedListener {
     private static final String TAG = "LoginActivity";
 
     // UI
@@ -43,6 +54,10 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
     private boolean mLoggedIn = false;
 
     private String mEmail, mPass;
+
+    // Google
+    private static final int RC_SIGN_IN = 1000;
+    private GoogleApiClient mGoogleApiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,6 +114,35 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
                 }
             }
         };
+
+        // Google auth
+        setupGoogleAuth();
+    }
+
+    /**
+     * Setup Google authentication.
+     */
+    private void setupGoogleAuth() {
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build();
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this, this)
+                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                .build();
+
+        View v = findViewById(R.id.connect_to_google_btn);
+        if (v != null)
+            v.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Log.d(TAG, "lmao");
+                    Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
+                    startActivityForResult(signInIntent, RC_SIGN_IN);
+                }
+            });
     }
 
     @Override
@@ -281,5 +325,48 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
             mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
             mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
         }
+    }
+
+    //// GOOGLE AUTH ////
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
+        if (requestCode == RC_SIGN_IN) {
+            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+            handleGoogleSignIn(result);
+        }
+    }
+
+    private void handleGoogleSignIn(GoogleSignInResult result) {
+        Log.d(TAG, "handleGoogleSignIn:" + result.isSuccess());
+        final GoogleSignInAccount acct;
+        if (result.isSuccess() && (acct = result.getSignInAccount()) != null) {
+            // Signed in successfully, show authenticated UI.
+            Toast.makeText(this, "Id: " + acct.getId(), Toast.LENGTH_LONG).show();
+
+            AuthCredential credential = GoogleAuthProvider.getCredential(acct.getIdToken(), null);
+            fb.getFirebaseAuth().signInWithCredential(credential).addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                @Override
+                public void onComplete(@NonNull Task<AuthResult> task) {
+                    Log.d(TAG, "signInWithCredential:onComplete:" + task.isSuccessful());
+
+                    if (!task.isSuccessful()) {
+                        Log.w(TAG, "signInWithCredential", task.getException());
+                        Toast.makeText(LoginActivity.this, "Authentication failed.",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        } else {
+            Log.d(TAG, "handleGoogleSignIn Error: " + result.getStatus().toString());
+            Toast.makeText(this, result.getStatus().toString(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        Log.d(TAG, "onConnectionFailed:" + connectionResult);
     }
 }

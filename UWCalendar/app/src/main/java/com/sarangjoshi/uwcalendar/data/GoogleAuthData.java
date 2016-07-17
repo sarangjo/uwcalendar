@@ -2,6 +2,7 @@ package com.sarangjoshi.uwcalendar.data;
 
 import android.content.Context;
 
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.http.HttpTransport;
@@ -26,6 +27,8 @@ public class GoogleAuthData {
 
     private static GoogleAuthData ourInstance = new GoogleAuthData();
 
+    private GoogleSignInAccount mAccount;
+
     public static GoogleAuthData getInstance() {
         return ourInstance;
     }
@@ -33,34 +36,11 @@ public class GoogleAuthData {
     private GoogleAuthData() {
     }
 
-    // Data
-    public static final String[] SCOPES = {CalendarScopes.CALENDAR};
-
-    private GoogleAccountCredential mCredential;
-
-    public void setupCredentials(Context ctx) {
-        mCredential = GoogleAccountCredential.usingOAuth2(
-                ctx, Arrays.asList(SCOPES))
-                .setBackOff(new ExponentialBackOff());
-        HttpTransport transport = AndroidHttp.newCompatibleTransport();
-        JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-        this.mCalendarService = new com.google.api.services.calendar.Calendar.Builder(
-                transport, jsonFactory, mCredential)
-                .setApplicationName("UW Calendar")
-                .build();
+    public void setAccount(GoogleSignInAccount acct) {
+        this.mAccount = acct;
     }
 
-    public void setAccountName(String accountName) {
-        if (mCredential.getSelectedAccountName() == null)
-            mCredential.setSelectedAccountName(accountName);
-    }
-
-    private com.google.api.services.calendar.Calendar mCalendarService = null;
-
-    /**
-     * Can only be called after the credentials have been setup.
-     */
-    public Calendar getService() {
-        return mCalendarService;
+    public GoogleSignInAccount getAccount() {
+        return this.mAccount;
     }
 }

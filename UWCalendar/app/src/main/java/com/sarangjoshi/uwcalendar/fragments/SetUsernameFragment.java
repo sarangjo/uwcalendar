@@ -19,7 +19,7 @@ import com.sarangjoshi.uwcalendar.R;
  */
 public class SetUsernameFragment extends DialogFragment {
     public interface SetUsernameListener {
-        void onSignupClick(String name);
+        void attemptSignup(String name);
     }
 
     SetUsernameListener mListener;
@@ -48,7 +48,7 @@ public class SetUsernameFragment extends DialogFragment {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         // TODO: make sure username is OK
-                        mListener.onSignupClick(username.getText().toString());
+                        mListener.attemptSignup(username.getText().toString());
                     }
                 });
         return builder.create();

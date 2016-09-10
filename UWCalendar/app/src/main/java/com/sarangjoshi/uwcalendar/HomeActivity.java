@@ -16,32 +16,22 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.auth.api.Auth;
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-import com.google.android.gms.auth.api.signin.GoogleSignInResult;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.AuthCredential;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 import com.sarangjoshi.uwcalendar.content.Day;
+import com.sarangjoshi.uwcalendar.content.Request;
 import com.sarangjoshi.uwcalendar.content.Schedule;
 import com.sarangjoshi.uwcalendar.content.Segment;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
-import com.sarangjoshi.uwcalendar.data.GoogleAuthData;
 import com.sarangjoshi.uwcalendar.fragments.ChangePasswordFragment;
 import com.sarangjoshi.uwcalendar.fragments.RequestScheduleFragment;
 
@@ -61,7 +51,6 @@ public class HomeActivity extends AppCompatActivity
 
     // Singletons
     private FirebaseData fb;
-    private GoogleAuthData goog;
 
     // View/Controller
     private ListView mRequestsList;
@@ -89,16 +78,6 @@ public class HomeActivity extends AppCompatActivity
         fb.getCurrentUserRef().child(FirebaseData.USERNAME_KEY).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
-                /*if (GoogleAuthData.GOOGLE_ENABLED) {
-                    if (snapshot.child(FirebaseData.GOOGLEAUTH_KEY).exists()) {
-                        // TODO: finish
-                        connectedToGoogle(snapshot.child(FirebaseData.GOOGLEAUTH_KEY).getValue().toString());
-                    } else {
-                        // NOT CONNECTED
-                        mIsGoogleConnected.setText(getResources().getString(R.string.not_connected_to_google));
-                    }
-                }*/
-
                 TextView usernameTextView = (TextView) findViewById(R.id.username_text_view);
                 if (usernameTextView != null)
                     try {
@@ -115,12 +94,14 @@ public class HomeActivity extends AppCompatActivity
             }
         });
 
-        // Listen to user request changes
+        // Requests
+        startService(new Intent(this, ReceiveRequestsService.class));
+
         fb.setRequestsValueListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 // TODO: Update requests
-                updateRequestsData(snapshot);
+                Toast.makeText(HomeActivity.this, "Request data changed", Toast.LENGTH_LONG).show();
             }
 
             @Override
@@ -190,6 +171,28 @@ public class HomeActivity extends AppCompatActivity
 
     //// VIEW UPDATE METHODS ////
 
+    private void updateRequests(Intent intent) {
+        mRequests.clear();
+
+        String[] keys = intent.getStringArrayExtra(ReceiveRequestsService.KEYS);
+        String[] ids = intent.getStringArrayExtra(ReceiveRequestsService.IDS);
+
+        for (int i = 0; i < keys.length; ++i) {
+            mRequests.add(new Request(keys[i], fb.getUsernameAndIdFromId(ids[i])));
+        }
+
+        ArrayAdapter<Request> adapter = new ArrayAdapter<Request>(this, android.R.layout.simple_list_item_1, mRequests) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                TextView v = (TextView) super.getView(position, convertView, parent);
+                v.setText(getItem(position).usernameAndId.username);
+                return v;
+            }
+        };
+
+        mRequestsList.setAdapter(adapter);
+    }
+
     /**
      * Sets the connections view from the DataSnapshot.
      */
@@ -216,28 +219,6 @@ public class HomeActivity extends AppCompatActivity
             }
         };
         mConnectionsList.setAdapter(adapter);
-    }
-
-    /**
-     * Updates the requests data from a DataSnapshot from the Firebase.
-     */
-
-    private void updateRequestsData(DataSnapshot requests) {
-        mRequests.clear();
-        for (DataSnapshot request : requests.getChildren()) {
-            String id = request.getValue().toString();
-            // Saves the key for deletion later
-            mRequests.add(new Request(request.getKey(), fb.getUsernameAndIdFromId(id)));
-        }
-        ArrayAdapter<Request> adapter = new ArrayAdapter<Request>(this, android.R.layout.simple_list_item_1, mRequests) {
-            @Override
-            public View getView(int position, View convertView, ViewGroup parent) {
-                TextView v = (TextView) super.getView(position, convertView, parent);
-                v.setText(getItem(position).usernameAndId.username);
-                return v;
-            }
-        };
-        mRequestsList.setAdapter(adapter);
     }
 
     //// BUTTONS CLICK RESPONSES ////
@@ -431,22 +412,6 @@ public class HomeActivity extends AppCompatActivity
         @Override
         protected void onPostExecute(Boolean aBoolean) {
             mDialog.hide();
-        }
-    }
-
-    /**
-     * <b>Request</b> represents a request made by one user to another.
-     */
-    public class Request {
-        public String key;
-        /**
-         * The recipient user for this request.
-         */
-        public FirebaseData.UsernameAndId usernameAndId;
-
-        public Request(String key, FirebaseData.UsernameAndId usernameAndId) {
-            this.key = key;
-            this.usernameAndId = usernameAndId;
         }
     }
 

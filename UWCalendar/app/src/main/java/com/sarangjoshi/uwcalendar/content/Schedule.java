@@ -66,7 +66,7 @@ public class Schedule {
     /**
      * Requests the two given id's from Firebase.
      */
-    public static void request(final HomeActivity.Request r, final RetrieveSchedulesListener listener) {
+    public static void request(final Request r, final RetrieveSchedulesListener listener) {
         // Request
         final FirebaseData fb = FirebaseData.getInstance();
         fb.getSchedulesRef().child(fb.getUid())
@@ -128,6 +128,6 @@ public class Schedule {
      * An interface that listens for schedule retrieving
      */
     public interface RetrieveSchedulesListener {
-        void schedulesRetrieved(HomeActivity.Request r, Schedule schedule1, Schedule schedule2);
+        void schedulesRetrieved(Request r, Schedule schedule1, Schedule schedule2);
     }
 }

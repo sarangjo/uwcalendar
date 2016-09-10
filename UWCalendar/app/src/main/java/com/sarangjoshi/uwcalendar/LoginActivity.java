@@ -15,7 +15,6 @@ import android.view.View;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.Auth;
@@ -23,7 +22,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
 import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -33,7 +31,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
-import com.sarangjoshi.uwcalendar.data.GoogleAuthData;
 import com.sarangjoshi.uwcalendar.fragments.SetUsernameFragment;
 
 /**
@@ -53,6 +50,7 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
     private FirebaseAuth.AuthStateListener mAuthListener;
     private boolean mLoggedIn = false;
 
+    // Model
     private String mEmail, mPass;
 
     // Google
@@ -65,25 +63,13 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
         setContentView(R.layout.activity_login);
         // Set up the login form.
         mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
-
         mPasswordView = (EditText) findViewById(R.id.password);
-        // TODO: Fix this? Choose signup or login
-//        mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-//            @Override
-//            public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
-//                if (id == R.id.login || id == EditorInfo.IME_NULL) {
-//                    attemptConnect();
-//                    return true;
-//                }
-//                return false;
-//            }
-//        });
 
         Button mEmailSignInButton = (Button) findViewById(R.id.sign_in_button);
-        mEmailSignInButton.setOnClickListener(new ConnectToDbListener());
+        mEmailSignInButton.setOnClickListener(new ConnectToFirebaseListener());
 
         Button mEmailSignUpButton = (Button) findViewById(R.id.sign_up_button);
-        mEmailSignUpButton.setOnClickListener(new ConnectToDbListener());
+        mEmailSignUpButton.setOnClickListener(new ConnectToFirebaseListener());
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
@@ -116,7 +102,7 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
         };
 
         // Google auth
-        setupGoogleAuth();
+        //setupGoogleAuth();
     }
 
     /**
@@ -133,16 +119,15 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
                 .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
                 .build();
 
-        View v = findViewById(R.id.connect_to_google_btn);
-        if (v != null)
-            v.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Log.d(TAG, "lmao");
-                    Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
-                    startActivityForResult(signInIntent, RC_SIGN_IN);
-                }
-            });
+//        View v = findViewById(R.id.connect_to_google_btn);
+//        if (v != null)
+//            v.setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View view) {
+//                    Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
+//                    startActivityForResult(signInIntent, RC_SIGN_IN);
+//                }
+//            });
     }
 
     @Override
@@ -159,6 +144,8 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
         }
     }
 
+    // TODO: 7/17/16 Remove both of these after done debugging
+
     public void sarangLogin(View view) {
         mEmail = "sarangj@msn.com";
         mPass = getResources().getString(R.string.default_password);
@@ -173,7 +160,10 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
         attemptLogin();
     }
 
-    private class ConnectToDbListener implements View.OnClickListener {
+    /**
+     * Connects to the Firebase auth service for both login and sign up.
+     */
+    private class ConnectToFirebaseListener implements View.OnClickListener {
         @Override
         public void onClick(View view) {
             attemptConnect(view);
@@ -231,11 +221,21 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
         }
     }
 
+    private boolean isEmailValid(String email) {
+        //TODO: Replace this with your own logic
+        return email.contains("@");
+    }
+
+    private boolean isPasswordValid(String password) {
+        //TODO: Replace this with your own logic
+        return password.length() > 0;
+    }
+
     /**
      * Signs up a new user, given their name. This is called from the fragment that is opened when
      * the Signup button is clicked.
      */
-    public void onSignupClick(final String username) {
+    public void attemptSignup(final String username) {
         showProgress(true);
         mAuth.createUserWithEmailAndPassword(mEmail, mPass)
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
@@ -268,8 +268,7 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
                 .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
-                        Log.d(TAG, "signInUser: " + task.isSuccessful());
-
+                        // Actual login is handled by mAuthListener.
                         if (!task.isSuccessful()) {
                             Log.w(TAG, "signInUser", task.getException());
 
@@ -279,16 +278,6 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
                         }
                     }
                 });
-    }
-
-    private boolean isEmailValid(String email) {
-        //TODO: Replace this with your own logic
-        return email.contains("@");
-    }
-
-    private boolean isPasswordValid(String password) {
-        //TODO: Replace this with your own logic
-        return password.length() > 0;
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.sarangjoshi.uwcalendar.data;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,11 +20,16 @@ public class ScheduleData {
     }
 
     private ScheduleData() {
+        quarterCodes = new String[]{"wi16", "sp16", "au16"};
         quarterInfo = new HashMap<>();
-        quarterInfo.put("wi16", new String[]{"2016-01-04", "2016-03-12"});
-        quarterInfo.put("sp16", new String[]{"2016-03-28", "2016-06-04"});
+        quarterInfo.put(quarterCodes[0], new String[]{"2016-01-04", "2016-03-12"});
+        quarterInfo.put(quarterCodes[1], new String[]{"2016-03-28", "2016-06-04"});
+        quarterInfo.put(quarterCodes[2], new String[]{"2016-09-28", "2016-12-09"});
     }
 
+    private String[] quarterCodes;
+
+    // TODO: change String[] to class
     private Map<String, String[]> quarterInfo;
 
     // M, T, W, Th, F
@@ -41,13 +47,13 @@ public class ScheduleData {
     }
 
     /**
-     * TODO implement
+     * Returns the latest quarter
      */
     public String getCurrentQuarter() {
-        return "sp16";
+        return getQuarters()[quarterCodes.length - 1];
     }
 
-    public Set<String> getQuarters() {
-        return Collections.unmodifiableSet(quarterInfo.keySet());
+    public String[] getQuarters() {
+        return Arrays.copyOf(quarterCodes, quarterCodes.length);
     }
 }

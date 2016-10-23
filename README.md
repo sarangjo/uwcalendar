@@ -1,6 +1,6 @@
 # UW Calendar
 
-A calendar optimizing application, using the Google Calendar API and more.
+A calendar optimizing application for UW students, using the Google Calendar API and more.
 
 ## Build Process
 

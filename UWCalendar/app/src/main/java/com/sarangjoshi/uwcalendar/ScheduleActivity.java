@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Spinner;
 
 import com.sarangjoshi.uwcalendar.content.Schedule;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
@@ -18,6 +19,7 @@ import com.sarangjoshi.uwcalendar.data.ScheduleData;
 import com.sarangjoshi.uwcalendar.network.NetworkOps;
 
 import java.io.IOException;
+import java.util.Set;
 
 public class ScheduleActivity extends AppCompatActivity implements NetworkOps.ScheduleLoadedListener {
     public static final int ADD_CLASS_REQUEST = 2001;
@@ -35,12 +37,14 @@ public class ScheduleActivity extends AppCompatActivity implements NetworkOps.Sc
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
+        // Handle adding class intent
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         if (fab != null) {
             fab.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     Intent intent = new Intent(ScheduleActivity.this, AddClassActivity.class);
+                    intent.putExtra(AddClassActivity.QUARTER_KEY, mQuarter);
                     startActivityForResult(intent, ADD_CLASS_REQUEST);
                 }
             });
@@ -48,9 +52,29 @@ public class ScheduleActivity extends AppCompatActivity implements NetworkOps.Sc
 
         // Singletons
         ScheduleData sched = ScheduleData.getInstance();
-        final FirebaseData fb = FirebaseData.getInstance();
 
         mQuarter = sched.getCurrentQuarter();
+        final String[] quarterCodes = sched.getQuarters();
+
+        // Quarters
+        Spinner spinner = (Spinner) findViewById(R.id.quarter_spinner);
+        ArrayAdapter<CharSequence> adapter = new ArrayAdapter<CharSequence>(this,
+                android.R.layout.simple_spinner_item, quarterCodes);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        spinner.setSelection(quarterCodes.length - 1);
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                mQuarter = quarterCodes[i];
+                if (mSchedule != null)
+                    scheduleLoaded(mSchedule);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+            }
+        });
 
         // Listen to schedule changes
         NetworkOps.getInstance().requestSchedule(this);

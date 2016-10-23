@@ -26,6 +26,10 @@ public class ReceiveRequestsService extends IntentService {
 
     FirebaseData fb = FirebaseData.getInstance();
 
+    public ReceiveRequestsService() {
+        super("name");
+    }
+
     public ReceiveRequestsService(String name) {
         super(name);
     }

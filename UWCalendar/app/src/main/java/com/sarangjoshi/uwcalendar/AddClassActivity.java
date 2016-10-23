@@ -34,12 +34,14 @@ public class AddClassActivity extends AppCompatActivity {
     public static final String END_KEY = "end";
     public static final String QUARTER_KEY = "quarter";
 
-    Button mStartTimePicker, mEndTimePicker;
-    EditText mClassName, mClassLocation;
-    CheckBox[] mCheckboxes;
-    ListView mErrorText;
+    private String mQuarter;
 
-    String[] mTimes;
+    private Button mStartTimePicker, mEndTimePicker;
+    private EditText mClassName, mClassLocation;
+    private CheckBox[] mCheckboxes;
+    private ListView mErrorText;
+
+    private String[] mTimes;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +66,8 @@ public class AddClassActivity extends AppCompatActivity {
         mCheckboxes[2] = (CheckBox) findViewById(R.id.wednesdayCheckBox);
         mCheckboxes[3] = (CheckBox) findViewById(R.id.thursdayCheckBox);
         mCheckboxes[4] = (CheckBox) findViewById(R.id.fridayCheckBox);
+
+        mQuarter = getIntent().getStringExtra(QUARTER_KEY);
     }
 
     public void showTimePickerDialog(View v) {
@@ -162,8 +166,7 @@ public class AddClassActivity extends AppCompatActivity {
             data.putExtra(START_KEY, mTimes[0]);
             data.putExtra(END_KEY, mTimes[1]);
 
-            // TODO: update to actually be a quarter chosen by the user
-            data.putExtra(QUARTER_KEY, ScheduleData.getInstance().getCurrentQuarter());
+            data.putExtra(QUARTER_KEY, mQuarter);
 
             setResult(RESULT_OK, data);
 

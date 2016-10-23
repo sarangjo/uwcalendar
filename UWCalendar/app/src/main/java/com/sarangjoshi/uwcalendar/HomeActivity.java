@@ -60,7 +60,7 @@ public class HomeActivity extends AppCompatActivity
 
     // Model
     private List<Request> mRequests;
-    private List<ConnectionProperty> mConnections;
+    private List<Connection> mConnections;
 
     //// ACTIVITY METHODS ////
 
@@ -95,13 +95,10 @@ public class HomeActivity extends AppCompatActivity
         });
 
         // Requests
-        startService(new Intent(this, ReceiveRequestsService.class));
-
         fb.setRequestsValueListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
-                // TODO: Update requests
-                Toast.makeText(HomeActivity.this, "Request data changed", Toast.LENGTH_LONG).show();
+                updateRequests(snapshot);
             }
 
             @Override
@@ -110,6 +107,27 @@ public class HomeActivity extends AppCompatActivity
             }
         });
 
+        // Trying out service
+        /* startService(new Intent(this, ReceiveRequestsService.class)); */
+
+        initializeViews();
+        mRequests = new ArrayList<>();
+        mConnections = new ArrayList<>();
+
+        // Check if users loaded
+        if (!fb.getAllUsers().isEmpty()) {
+            usersLoaded();
+        }
+
+        mDialog = new ProgressDialog(this);
+    }
+
+    //// VIEW INITIALIZATION METHODS ////
+
+    /**
+     * Initializes the requests and connections list views.
+     */
+    private void initializeViews() {
         mRequestsList = (ListView) findViewById(R.id.requests_list);
         mRequestsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -139,9 +157,7 @@ public class HomeActivity extends AppCompatActivity
                 dialog.show(getSupportFragmentManager(), "acceptRequestFragment");
             }
         });
-        mRequests = new ArrayList<>();
 
-        // Connections management
         mConnectionsList = (ListView) findViewById(R.id.connections_list);
         mConnectionsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -159,18 +175,41 @@ public class HomeActivity extends AppCompatActivity
                 return true;
             }
         });
-        mConnections = new ArrayList<>();
-
-        // Check if users loaded
-        if (!fb.getAllUsers().isEmpty()) {
-            usersLoaded();
-        }
-
-        mDialog = new ProgressDialog(this);
     }
 
     //// VIEW UPDATE METHODS ////
 
+    /**
+     * Updates the local requests list once they have been retrieved from the server.
+     *
+     * @param snapshot
+     */
+    private void updateRequests(DataSnapshot snapshot) {
+        mRequests.clear();
+
+        List<String> requestKeys = new ArrayList<>();
+        List<String> requestIds = new ArrayList<>();
+
+        for (DataSnapshot request : snapshot.getChildren()) {
+            String id = request.getValue().toString();
+            mRequests.add(new Request(request.getKey(), fb.getUsernameAndIdFromId(id)));
+        }
+
+        ArrayAdapter<Request> adapter = new ArrayAdapter<Request>(this, android.R.layout.simple_list_item_1, mRequests) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                TextView v = (TextView) super.getView(position, convertView, parent);
+                v.setText(getItem(position).usernameAndId.username);
+                return v;
+            }
+        };
+
+        mRequestsList.setAdapter(adapter);
+    }
+
+    /**
+     * TODO remove, this is used when the eventual service sends the data through an intent
+     */
     private void updateRequests(Intent intent) {
         mRequests.clear();
 
@@ -204,13 +243,13 @@ public class HomeActivity extends AppCompatActivity
                 FirebaseData.UsernameAndId with = fb.getUsernameAndIdFromId(conn.child(FirebaseData.CONNECTION_WITH_KEY).getValue().toString());
                 if (with != null) {
                     // Only add the connection if the name has loaded
-                    mConnections.add(new ConnectionProperty(id, with));
+                    mConnections.add(new Connection(id, with));
                 }
             } catch (NullPointerException ignored) {
                 // TODO what is causing this?
             }
         }
-        ArrayAdapter<ConnectionProperty> adapter = new ArrayAdapter<ConnectionProperty>(this, android.R.layout.simple_list_item_1, mConnections) {
+        ArrayAdapter<Connection> adapter = new ArrayAdapter<Connection>(this, android.R.layout.simple_list_item_1, mConnections) {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
                 TextView v = (TextView) super.getView(position, convertView, parent);
@@ -406,6 +445,7 @@ public class HomeActivity extends AppCompatActivity
 
         @Override
         protected Boolean doInBackground(Integer... params) {
+            // TODO: 10/23/2016 what is this?
             return null;
         }
 
@@ -415,11 +455,14 @@ public class HomeActivity extends AppCompatActivity
         }
     }
 
-    public class ConnectionProperty {
+    /**
+     * Representative of a connection between this user and another user.
+     */
+    public class Connection {
         public String id;
         public FirebaseData.UsernameAndId with;
 
-        public ConnectionProperty(String id, FirebaseData.UsernameAndId with) {
+        public Connection(String id, FirebaseData.UsernameAndId with) {
             this.id = id;
             this.with = with;
         }

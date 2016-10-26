@@ -10,11 +10,15 @@ import com.sarangjoshi.uwcalendar.content.Day;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.network.NetworkOps;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class ConnectionActivity extends AppCompatActivity implements NetworkOps.ConnectionLoadedListener {
     private ExpandableListView mConnectionView;
     private ProgressDialog mDialog;
+
+    private String mQuarter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,6 +27,10 @@ public class ConnectionActivity extends AppCompatActivity implements NetworkOps.
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        mQuarter = getIntent().getStringExtra(AddClassActivity.QUARTER_KEY);
+
+        // TODO; choose quarter via spinner
 
         // Views
         mConnectionView = (ExpandableListView) findViewById(R.id.connection_view);
@@ -38,8 +46,10 @@ public class ConnectionActivity extends AppCompatActivity implements NetworkOps.
     }
 
     @Override
-    public void connectionLoaded(List<Day> connection) {
-        DayListAdapter adapter = new DayListAdapter(this, connection);
+    public void connectionLoaded(Map<String, List<Day>> connection) {
+        List<Day> week = connection.get(mQuarter);
+        week = (week == null) ? new ArrayList<Day>() : week;
+        DayListAdapter adapter = new DayListAdapter(this, week);
         mConnectionView.setAdapter(adapter);
 
         mDialog.hide();

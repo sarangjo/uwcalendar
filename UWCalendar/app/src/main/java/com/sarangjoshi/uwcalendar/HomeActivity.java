@@ -4,7 +4,6 @@ import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
@@ -27,15 +26,17 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
+import com.sarangjoshi.uwcalendar.content.Connection;
 import com.sarangjoshi.uwcalendar.content.Day;
 import com.sarangjoshi.uwcalendar.content.Request;
 import com.sarangjoshi.uwcalendar.content.Schedule;
 import com.sarangjoshi.uwcalendar.content.Segment;
+import com.sarangjoshi.uwcalendar.content.User;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
+import com.sarangjoshi.uwcalendar.data.ScheduleData;
 import com.sarangjoshi.uwcalendar.fragments.ChangePasswordFragment;
 import com.sarangjoshi.uwcalendar.fragments.RequestScheduleFragment;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -59,8 +60,7 @@ public class HomeActivity extends AppCompatActivity
     private ProgressDialog mDialog;
 
     // Model
-    private List<Request> mRequests;
-    private List<Connection> mConnections;
+    private User mUser;
 
     //// ACTIVITY METHODS ////
 
@@ -107,12 +107,11 @@ public class HomeActivity extends AppCompatActivity
             }
         });
 
-        // Trying out service
+        // TODO Trying out service
         /* startService(new Intent(this, ReceiveRequestsService.class)); */
 
         initializeViews();
-        mRequests = new ArrayList<>();
-        mConnections = new ArrayList<>();
+        mUser = User.getInstance();
 
         // Check if users loaded
         if (!fb.getAllUsers().isEmpty()) {
@@ -129,6 +128,7 @@ public class HomeActivity extends AppCompatActivity
      */
     private void initializeViews() {
         mRequestsList = (ListView) findViewById(R.id.requests_list);
+        // When a request is clicked, ask the user whether they want to accept the request
         mRequestsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
@@ -143,7 +143,7 @@ public class HomeActivity extends AppCompatActivity
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 // Accept request
-                                new AcceptRequestTask().execute(position);
+                                mUser.acceptRequest(HomeActivity.this, position);
                             }
                         }).setNegativeButton("Decline", new DialogInterface.OnClickListener() {
                             @Override
@@ -159,19 +159,21 @@ public class HomeActivity extends AppCompatActivity
         });
 
         mConnectionsList = (ListView) findViewById(R.id.connections_list);
+        // When a connection is clicked, open it
         mConnectionsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                // TODO: Open connection page
+                // Open connection page
                 Intent intent = new Intent(HomeActivity.this, ConnectionActivity.class);
-                intent.putExtra(FirebaseData.CONNECTION_ID_KEY, mConnections.get(position).id);
+                intent.putExtra(FirebaseData.CONNECTION_ID_KEY, mUser.getConnection(position).id);
+                intent.putExtra(AddClassActivity.QUARTER_KEY, ScheduleData.getInstance().getCurrentQuarter());
                 startActivity(intent);
             }
         });
         mConnectionsList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                new DeleteConnectionTask().execute();
+                mUser.deleteConnection(HomeActivity.this, position);
                 return true;
             }
         });
@@ -181,21 +183,10 @@ public class HomeActivity extends AppCompatActivity
 
     /**
      * Updates the local requests list once they have been retrieved from the server.
-     *
-     * @param snapshot
      */
     private void updateRequests(DataSnapshot snapshot) {
-        mRequests.clear();
-
-        List<String> requestKeys = new ArrayList<>();
-        List<String> requestIds = new ArrayList<>();
-
-        for (DataSnapshot request : snapshot.getChildren()) {
-            String id = request.getValue().toString();
-            mRequests.add(new Request(request.getKey(), fb.getUsernameAndIdFromId(id)));
-        }
-
-        ArrayAdapter<Request> adapter = new ArrayAdapter<Request>(this, android.R.layout.simple_list_item_1, mRequests) {
+        mUser.setRequests(snapshot);
+        ArrayAdapter<Request> adapter = new ArrayAdapter<Request>(this, android.R.layout.simple_list_item_1, mUser.getRequests()) {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
                 TextView v = (TextView) super.getView(position, convertView, parent);
@@ -203,55 +194,43 @@ public class HomeActivity extends AppCompatActivity
                 return v;
             }
         };
-
         mRequestsList.setAdapter(adapter);
     }
 
     /**
      * TODO remove, this is used when the eventual service sends the data through an intent
      */
-    private void updateRequests(Intent intent) {
-        mRequests.clear();
-
-        String[] keys = intent.getStringArrayExtra(ReceiveRequestsService.KEYS);
-        String[] ids = intent.getStringArrayExtra(ReceiveRequestsService.IDS);
-
-        for (int i = 0; i < keys.length; ++i) {
-            mRequests.add(new Request(keys[i], fb.getUsernameAndIdFromId(ids[i])));
-        }
-
-        ArrayAdapter<Request> adapter = new ArrayAdapter<Request>(this, android.R.layout.simple_list_item_1, mRequests) {
-            @Override
-            public View getView(int position, View convertView, ViewGroup parent) {
-                TextView v = (TextView) super.getView(position, convertView, parent);
-                v.setText(getItem(position).usernameAndId.username);
-                return v;
-            }
-        };
-
-        mRequestsList.setAdapter(adapter);
-    }
+//    private void updateRequests(Intent intent) {
+//        mRequests.clear();
+//
+//        String[] keys = intent.getStringArrayExtra(ReceiveRequestsService.KEYS);
+//        String[] ids = intent.getStringArrayExtra(ReceiveRequestsService.IDS);
+//
+//        for (int i = 0; i < keys.length; ++i) {
+//            mRequests.add(new Request(keys[i], fb.getUsernameAndIdFromId(ids[i])));
+//        }
+//
+//        ArrayAdapter<Request> adapter = new ArrayAdapter<Request>(this, android.R.layout.simple_list_item_1, mRequests) {
+//            @Override
+//            public View getView(int position, View convertView, ViewGroup parent) {
+//                TextView v = (TextView) super.getView(position, convertView, parent);
+//                v.setText(getItem(position).usernameAndId.username);
+//                return v;
+//            }
+//        };
+//
+//        mRequestsList.setAdapter(adapter);
+//    }
 
     /**
      * Sets the connections view from the DataSnapshot.
      */
     private void updateConnections(DataSnapshot connections) {
-        mConnections.clear();
-        for (DataSnapshot conn : connections.getChildren()) {
-            try {
-                String id = conn.child(FirebaseData.CONNECTION_ID_KEY).getValue().toString();
-                FirebaseData.UsernameAndId with = fb.getUsernameAndIdFromId(conn.child(FirebaseData.CONNECTION_WITH_KEY).getValue().toString());
-                if (with != null) {
-                    // Only add the connection if the name has loaded
-                    mConnections.add(new Connection(id, with));
-                }
-            } catch (NullPointerException ignored) {
-                // TODO what is causing this?
-            }
-        }
-        ArrayAdapter<Connection> adapter = new ArrayAdapter<Connection>(this, android.R.layout.simple_list_item_1, mConnections) {
+        mUser.setConnections(connections);
+        ArrayAdapter<Connection> adapter = new ArrayAdapter<Connection>(this, android.R.layout.simple_list_item_1, mUser.getConnections()) {
+            @NonNull
             @Override
-            public View getView(int position, View convertView, ViewGroup parent) {
+            public View getView(int position, View convertView, @NonNull ViewGroup parent) {
                 TextView v = (TextView) super.getView(position, convertView, parent);
                 v.setText(getItem(position).with.username);
                 return v;
@@ -290,6 +269,7 @@ public class HomeActivity extends AppCompatActivity
     public void usernameSelected(final FirebaseData.UsernameAndId selected) {
         mDialog.setMessage("Requesting schedule...");
         // First check if a request has already been issued
+        // TODO also check if a connection already exists
         DatabaseReference reqRef = fb.getRequestsRef().child(selected.id);
         reqRef.orderByValue().equalTo(fb.getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -408,63 +388,5 @@ public class HomeActivity extends AppCompatActivity
             }
         };
         fb.setConnectionsValueListener(connVEL);
-    }
-
-    //// INNER CLASSES ////
-
-    /**
-     * Accept a connection request. Parameters: position
-     */
-    private class AcceptRequestTask extends AsyncTask<Integer, Void, Void> {
-        @Override
-        protected void onPreExecute() {
-            mDialog.setMessage("Accepting request...");
-            mDialog.show();
-        }
-
-        @Override
-        protected Void doInBackground(Integer... params) {
-            Request r = mRequests.get(params[0]);
-
-            // Request schedules to combine
-            Schedule.request(r, HomeActivity.this);
-
-            return null;
-        }
-    }
-
-    /**
-     * Deletes a connection.
-     */
-    private class DeleteConnectionTask extends AsyncTask<Integer, Void, Boolean> {
-        @Override
-        protected void onPreExecute() {
-            mDialog.setMessage("Deleting connection...");
-            mDialog.show();
-        }
-
-        @Override
-        protected Boolean doInBackground(Integer... params) {
-            // TODO: 10/23/2016 what is this?
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            mDialog.hide();
-        }
-    }
-
-    /**
-     * Representative of a connection between this user and another user.
-     */
-    public class Connection {
-        public String id;
-        public FirebaseData.UsernameAndId with;
-
-        public Connection(String id, FirebaseData.UsernameAndId with) {
-            this.id = id;
-            this.with = with;
-        }
     }
 }

@@ -61,7 +61,7 @@
                 android:value="com.sarangjoshi.uwcalendar.HomeActivity" />
         </activity>
         <service
-            android:name=".ReceiveRequestsService"
+            android:name=".services.ReceiveRequestsService"
             android:enabled="true"
             android:exported="true">
             <intent-filter>

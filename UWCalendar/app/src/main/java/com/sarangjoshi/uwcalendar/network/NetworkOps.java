@@ -10,13 +10,17 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 import com.sarangjoshi.uwcalendar.ConnectionActivity;
+import com.sarangjoshi.uwcalendar.HomeActivity;
 import com.sarangjoshi.uwcalendar.content.Day;
+import com.sarangjoshi.uwcalendar.content.Request;
 import com.sarangjoshi.uwcalendar.content.Schedule;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * TODO: add class comment
@@ -39,18 +43,21 @@ public class NetworkOps {
      * @param id connection id
      */
     public void requestConnection(String id, final ConnectionLoadedListener listener) {
-        FirebaseData.getInstance().getConnectionsRef().child(id).addValueEventListener(new ValueEventListener() {
+        FirebaseData.getInstance().getConnectionsRef().child(id).child(FirebaseData.DATA_KEY).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot connection) {
-                ScheduleData sched = ScheduleData.getInstance();
-                DataSnapshot data = connection.child(FirebaseData.DATA_KEY).child(sched.getCurrentQuarter());
-                List<Day> week = new ArrayList<Day>();
-                for (int i = 0; i < ScheduleData.DAYS_MAP.length; ++i) {
-                    week.add(Day.valueOf(data.child(i + "")));
+                Map<String, List<Day>> connectionByQuarters = new HashMap<>();
+
+                for (DataSnapshot child : connection.getChildren()) {
+                    List<Day> week = new ArrayList<>();
+                    for (int i = 0; i < ScheduleData.DAYS_MAP.length; ++i) {
+                        week.add(Day.valueOf(child.child(i + "")));
+                    }
+                    connectionByQuarters.put(child.getKey(), week);
                 }
 
                 // Notify listener
-                listener.connectionLoaded(week);
+                listener.connectionLoaded(connectionByQuarters);
             }
 
             @Override
@@ -61,7 +68,7 @@ public class NetworkOps {
     }
 
     public interface ConnectionLoadedListener {
-        void connectionLoaded(List<Day> connection);
+        void connectionLoaded(Map<String, List<Day>> connection);
     }
 
     /**

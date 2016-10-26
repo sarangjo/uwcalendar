@@ -1,4 +1,4 @@
-package com.sarangjoshi.uwcalendar;
+package com.sarangjoshi.uwcalendar.services;
 
 import android.app.IntentService;
 import android.content.BroadcastReceiver;

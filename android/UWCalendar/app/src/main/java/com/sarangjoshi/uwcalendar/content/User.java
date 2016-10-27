@@ -96,7 +96,7 @@ public class User implements Schedule.RetrieveSchedulesListener {
         protected Boolean doInBackground(Integer... params) {
             Request requestToAccept = mRequests.get(params[0]);
 
-            // Request schedules to combine
+            // First, request schedules to combine
             Schedule.request(requestToAccept, User.this);
 
             return null;

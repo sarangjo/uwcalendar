@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.sarangjoshi.uwcalendar.data.FirebaseData.USERNAME_KEY;
+
 /**
  * TODO: add class comment
  *
@@ -36,6 +38,8 @@ public class NetworkOps {
 
     private NetworkOps() {
     }
+
+    private FirebaseData fb = FirebaseData.getInstance();
 
     /**
      * Download a new Connection.
@@ -91,6 +95,30 @@ public class NetworkOps {
 
     public interface ScheduleLoadedListener {
         void scheduleLoaded(Schedule s);
+    }
+
+    public void requestUsers(final UsersLoadedListener listener) {
+        // Global name<-->id one to one mapping
+        fb.getUsersRef().addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot users) {
+                List<FirebaseData.UsernameAndId> usersList = new ArrayList<>();
+                for (DataSnapshot user : users.getChildren()) {
+                    usersList.add(new FirebaseData.UsernameAndId(user.child(USERNAME_KEY).getValue().toString(),
+                            user.getKey()));
+                }
+                listener.usersLoaded(usersList);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // TODO: lmao
+            }
+        });
+    }
+
+    public interface UsersLoadedListener {
+        void usersLoaded(List<FirebaseData.UsernameAndId> usersList);
     }
 
     /**

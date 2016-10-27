@@ -55,26 +55,6 @@ public class FirebaseData {
         mConnectionsRef = mRef.child(CONNECTIONS_KEY);
 
         mUsersList = new ArrayList<>();
-
-        // Global name<-->id one to one mapping
-        getUsersRef().addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot users) {
-                mUsersList.clear();
-
-                for (DataSnapshot user : users.getChildren()) {
-                    mUsersList.add(new UsernameAndId(user.child(USERNAME_KEY).getValue().toString(),
-                            user.getKey()));
-                }
-
-                if (mUsersLoadedListener != null) mUsersLoadedListener.usersLoaded();
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                // TODO: lmao
-            }
-        });
     }
 
     //// GLOBAL DATA
@@ -99,10 +79,9 @@ public class FirebaseData {
         return mRequestsRef;
     }
 
-    private UsersLoadedListener mUsersLoadedListener;
     private List<UsernameAndId> mUsersList;
 
-    ///// CURRENT USER
+    //// CURRENT USER
 
     private FirebaseAuth mAuth;
     private FirebaseUser mCurrentUser;
@@ -198,8 +177,8 @@ public class FirebaseData {
 
     //// OTHER MISC. USER DATA
 
-    public void setUsersListener(UsersLoadedListener l) {
-        this.mUsersLoadedListener = l;
+    public void setUsers(List<UsernameAndId> users) {
+        this.mUsersList = users;
     }
 
     /**
@@ -244,10 +223,9 @@ public class FirebaseData {
         }
     }
 
-    public interface UsersLoadedListener {
-        void usersLoaded();
-    }
-
+    /**
+     * Represents a 1-to-1 mapping between usernames and id's.
+     */
     public static class UsernameAndId {
         public String username;
         public String id;

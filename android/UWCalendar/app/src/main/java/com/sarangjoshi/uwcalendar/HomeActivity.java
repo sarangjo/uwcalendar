@@ -36,6 +36,7 @@ import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;
 import com.sarangjoshi.uwcalendar.fragments.ChangePasswordFragment;
 import com.sarangjoshi.uwcalendar.fragments.RequestScheduleFragment;
+import com.sarangjoshi.uwcalendar.network.NetworkOps;
 
 import java.util.Iterator;
 import java.util.List;
@@ -47,7 +48,7 @@ import java.util.Map;
  * to other users, and view established connections with other users.
  */
 public class HomeActivity extends AppCompatActivity
-        implements RequestScheduleFragment.NameSelectedListener, ChangePasswordFragment.ChangePasswordListener, Schedule.RetrieveSchedulesListener, FirebaseData.UsersLoadedListener {
+        implements RequestScheduleFragment.NameSelectedListener, ChangePasswordFragment.ChangePasswordListener, Schedule.RetrieveSchedulesListener, NetworkOps.UsersLoadedListener {
     private static final String TAG = "HomeActivity";
 
     // Singletons
@@ -72,40 +73,6 @@ public class HomeActivity extends AppCompatActivity
         setSupportActionBar(toolbar);
 
         fb = FirebaseData.getInstance();
-        fb.setUsersListener(this);
-
-        // Get initial user-specific data
-        fb.getCurrentUserRef().child(FirebaseData.USERNAME_KEY).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot snapshot) {
-                TextView usernameTextView = (TextView) findViewById(R.id.username_text_view);
-                if (usernameTextView != null)
-                    try {
-                        usernameTextView.setText(snapshot.getValue().toString());
-                    } catch (NullPointerException e) {
-                        usernameTextView.setText(getResources().getString(R.string.name_error));
-                    }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError DatabaseError) {
-                // TODO lel
-                Log.d(TAG, "User download cancelled.");
-            }
-        });
-
-        // Requests
-        fb.setRequestsValueListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot snapshot) {
-                updateRequests(snapshot);
-            }
-
-            @Override
-            public void onCancelled(DatabaseError DatabaseError) {
-                Log.d("Download error", DatabaseError.getMessage());
-            }
-        });
 
         // TODO Trying out service
         /* startService(new Intent(this, ReceiveRequestsService.class)); */
@@ -113,12 +80,12 @@ public class HomeActivity extends AppCompatActivity
         initializeViews();
         mUser = User.getInstance();
 
-        // Check if users loaded
-        if (!fb.getAllUsers().isEmpty()) {
-            usersLoaded();
-        }
-
         mDialog = new ProgressDialog(this);
+        mDialog.setMessage("Loading...");
+        mDialog.show();
+
+        // The first thing to do is download user information
+        NetworkOps.getInstance().requestUsers(this);
     }
 
     //// VIEW INITIALIZATION METHODS ////
@@ -266,7 +233,7 @@ public class HomeActivity extends AppCompatActivity
     //// FRAGMENT RESPONSES ////
 
     @Override
-    public void usernameSelected(final FirebaseData.UsernameAndId selected) {
+    public void usernameToRequestSelected(final FirebaseData.UsernameAndId selected) {
         mDialog.setMessage("Requesting schedule...");
         // First check if a request has already been issued
         // TODO also check if a connection already exists
@@ -374,9 +341,32 @@ public class HomeActivity extends AppCompatActivity
     }
 
     @Override
-    public void usersLoaded() {
+    public void usersLoaded(List<FirebaseData.UsernameAndId> usersList) {
+        fb.setUsers(usersList);
+        mDialog.hide();
+
+        // Get initial user-specific data
+        fb.getCurrentUserRef().child(FirebaseData.USERNAME_KEY).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                TextView usernameTextView = (TextView) findViewById(R.id.username_text_view);
+                if (usernameTextView != null)
+                    try {
+                        usernameTextView.setText(snapshot.getValue().toString());
+                    } catch (NullPointerException e) {
+                        usernameTextView.setText(getResources().getString(R.string.name_error));
+                    }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError DatabaseError) {
+                // TODO lel
+                Log.d(TAG, "User download cancelled.");
+            }
+        });
+
         // Listen to user connection changes
-        ValueEventListener connVEL = new ValueEventListener() {
+        fb.setConnectionsValueListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 updateConnections(dataSnapshot);
@@ -386,7 +376,19 @@ public class HomeActivity extends AppCompatActivity
             public void onCancelled(DatabaseError DatabaseError) {
 
             }
-        };
-        fb.setConnectionsValueListener(connVEL);
+        });
+
+        // Listen to user request changes
+        fb.setRequestsValueListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                updateRequests(snapshot);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError DatabaseError) {
+                Log.d("Download error", DatabaseError.getMessage());
+            }
+        });
     }
 }

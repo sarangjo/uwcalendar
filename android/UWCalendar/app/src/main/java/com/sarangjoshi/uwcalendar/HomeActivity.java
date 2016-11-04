@@ -27,10 +27,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 import com.sarangjoshi.uwcalendar.content.Connection;
-import com.sarangjoshi.uwcalendar.content.Day;
 import com.sarangjoshi.uwcalendar.content.Request;
-import com.sarangjoshi.uwcalendar.content.Schedule;
-import com.sarangjoshi.uwcalendar.content.Segment;
 import com.sarangjoshi.uwcalendar.content.User;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;
@@ -40,7 +37,6 @@ import com.sarangjoshi.uwcalendar.network.NetworkOps;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 /**
  * The central activity for the application's workflow. Once a user is logged in, they reach the
@@ -48,7 +44,7 @@ import java.util.Map;
  * to other users, and view established connections with other users.
  */
 public class HomeActivity extends AppCompatActivity
-        implements RequestScheduleFragment.NameSelectedListener, ChangePasswordFragment.ChangePasswordListener, Schedule.RetrieveSchedulesListener, NetworkOps.UsersLoadedListener {
+        implements RequestScheduleFragment.NameSelectedListener, ChangePasswordFragment.ChangePasswordListener, NetworkOps.UsersLoadedListener {
     private static final String TAG = "HomeActivity";
 
     // Singletons
@@ -85,7 +81,7 @@ public class HomeActivity extends AppCompatActivity
         mDialog.show();
 
         // The first thing to do is download user information
-        NetworkOps.getInstance().requestUsers(this);
+        NetworkOps.getInstance().retrieveUsers(this);
     }
 
     //// VIEW INITIALIZATION METHODS ////
@@ -133,7 +129,7 @@ public class HomeActivity extends AppCompatActivity
                 // Open connection page
                 Intent intent = new Intent(HomeActivity.this, ConnectionActivity.class);
                 intent.putExtra(FirebaseData.CONNECTION_ID_KEY, mUser.getConnection(position).id);
-                intent.putExtra(AddClassActivity.QUARTER_KEY, ScheduleData.getInstance().getCurrentQuarter());
+                intent.putExtra(AddClassActivity.QUARTER_KEY, "sp16"); // ScheduleData.getInstance().getCurrentQuarter()); // TODO replace
                 startActivity(intent);
             }
         });
@@ -163,31 +159,6 @@ public class HomeActivity extends AppCompatActivity
         };
         mRequestsList.setAdapter(adapter);
     }
-
-    /**
-     * TODO remove, this is used when the eventual service sends the data through an intent
-     */
-//    private void updateRequests(Intent intent) {
-//        mRequests.clear();
-//
-//        String[] keys = intent.getStringArrayExtra(ReceiveRequestsService.KEYS);
-//        String[] ids = intent.getStringArrayExtra(ReceiveRequestsService.IDS);
-//
-//        for (int i = 0; i < keys.length; ++i) {
-//            mRequests.add(new Request(keys[i], fb.getUsernameAndIdFromId(ids[i])));
-//        }
-//
-//        ArrayAdapter<Request> adapter = new ArrayAdapter<Request>(this, android.R.layout.simple_list_item_1, mRequests) {
-//            @Override
-//            public View getView(int position, View convertView, ViewGroup parent) {
-//                TextView v = (TextView) super.getView(position, convertView, parent);
-//                v.setText(getItem(position).usernameAndId.username);
-//                return v;
-//            }
-//        };
-//
-//        mRequestsList.setAdapter(adapter);
-//    }
 
     /**
      * Sets the connections view from the DataSnapshot.
@@ -281,63 +252,6 @@ public class HomeActivity extends AppCompatActivity
                         mDialog.hide();
                     }
                 });
-    }
-
-    @Override
-    public void schedulesRetrieved(Request r, Schedule schedule1, Schedule schedule2) {
-        // Now that the schedules have been retrieved, compile them
-        Map<String, List<Day>> connectedQuarters = Schedule.connect(schedule1, schedule2);
-
-        if (connectedQuarters.isEmpty()) {
-            // For now, do nothing because there was an issue with the schedules
-            return;  // TODO: what?
-        }
-
-        // Add to the connections collection
-        DatabaseReference connRef = fb.getConnectionsRef().push();
-
-        // 1. Participants
-        DatabaseReference participantsRef = connRef.child(FirebaseData.PARTICIPANTS_KEY);
-
-        participantsRef.push().setValue(r.usernameAndId.id);
-        participantsRef.push().setValue(fb.getUid());
-
-        // 2. Actual connection data
-        DatabaseReference dataRef = connRef.child(FirebaseData.DATA_KEY);
-
-        // TODO: probably abstract this out
-        for (String qtr : connectedQuarters.keySet()) {
-            DatabaseReference qtrRef = dataRef.child(qtr);
-            List<Day> days = connectedQuarters.get(qtr);
-            for (int i = 0; i < days.size(); ++i) {
-                Day d = days.get(i);
-                DatabaseReference dayRef = qtrRef.child(i + "");
-
-                List<Segment> segs = d.getSegments();
-                for (Segment s : segs) {
-                    // Special case to save a fully empty day
-                    if (s.classesMap.isEmpty() && segs.size() != 1)
-                        continue;
-                    fb.saveSegment(dayRef.push(), s);
-                }
-            }
-        }
-
-        // Add to both users' connections list:
-        // Self
-        DatabaseReference userConn = fb.getCurrentUserRef().child(FirebaseData.CONNECTIONS_KEY).push();
-        userConn.child(FirebaseData.CONNECTION_ID_KEY).setValue(connRef.getKey());
-        userConn.child(FirebaseData.CONNECTION_WITH_KEY).setValue(r.usernameAndId.id);
-
-        // Other
-        userConn = fb.getUsersRef().child(r.usernameAndId.id).child(FirebaseData.CONNECTIONS_KEY).push();
-        userConn.child(FirebaseData.CONNECTION_ID_KEY).setValue(connRef.getKey());
-        userConn.child(FirebaseData.CONNECTION_WITH_KEY).setValue(fb.getUid());
-
-        // Delete the request
-        fb.getRequestsRef().child(fb.getUid()).child(r.key).removeValue();
-
-        mDialog.hide();
     }
 
     @Override

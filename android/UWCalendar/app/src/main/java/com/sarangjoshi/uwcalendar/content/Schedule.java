@@ -3,7 +3,6 @@ package com.sarangjoshi.uwcalendar.content;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
-import com.sarangjoshi.uwcalendar.HomeActivity;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.GoogleAuthData;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;
@@ -46,6 +45,7 @@ public class Schedule {
      * Returns an unmodifiable list of this schedule's classes, if the given quarter has a defined schedule.
      */
     public List<SingleClass> getClasses(String qtr) {
+        // TODO: 11/4/2016 ??
         if (!mQuarters.containsKey(qtr))
             mQuarters.put(qtr, new Quarter(mId, qtr));
         return mQuarters.get(qtr).getClasses();
@@ -64,39 +64,6 @@ public class Schedule {
 
 
     /**
-     * Requests the two given id's from Firebase.
-     */
-    public static void request(final Request r, final RetrieveSchedulesListener listener) {
-        // Request
-        final FirebaseData fb = FirebaseData.getInstance();
-        fb.getSchedulesRef().child(fb.getUid())
-                .addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        final Schedule schedule1 = Schedule.valueOf(fb.getUid(), dataSnapshot);
-                        fb.getSchedulesRef().child(r.usernameAndId.id)
-                                .addListenerForSingleValueEvent(new ValueEventListener() {
-                                    @Override
-                                    public void onDataChange(DataSnapshot dataSnapshot) {
-                                        Schedule schedule2 = Schedule.valueOf(r.usernameAndId.id, dataSnapshot);
-                                        listener.schedulesRetrieved(r, schedule1, schedule2);
-                                    }
-
-                                    @Override
-                                    public void onCancelled(DatabaseError firebaseError) {
-                                        // TODO: lmao as always
-                                    }
-                                });
-                    }
-
-                    @Override
-                    public void onCancelled(DatabaseError firebaseError) {
-                        // TODO: lmao as always
-                    }
-                });
-    }
-
-    /**
      * Converts a DataSnapshot into a Schedule object.
      */
     public static Schedule valueOf(String id, DataSnapshot snapshot) {
@@ -105,29 +72,5 @@ public class Schedule {
             s.mQuarters.put(qtrSnapshot.getKey(), Quarter.valueOf(id, qtrSnapshot));
         }
         return s;
-    }
-
-    /**
-     * Connects two schedules.
-     *
-     * @return a map from quarters to connected schedule weeks (represented as Lists of Days
-     */
-    public static Map<String, List<Day>> connect(Schedule schedule1, Schedule schedule2) {
-        Map<String, List<Day>> map = new HashMap<>();
-
-        //for (String qtr : .getQuarters()) {
-        String qtr = ScheduleData.getInstance().getCurrentQuarter();
-        List<Day> combinedQtr = Quarter.connect(schedule1.mQuarters.get(qtr), schedule2.mQuarters.get(qtr));
-        map.put(qtr, combinedQtr);
-        //}
-
-        return map;
-    }
-
-    /**
-     * An interface that listens for schedule retrieving
-     */
-    public interface RetrieveSchedulesListener {
-        void schedulesRetrieved(Request r, Schedule schedule1, Schedule schedule2);
     }
 }

@@ -14,12 +14,10 @@ import android.widget.Spinner;
 
 import com.sarangjoshi.uwcalendar.content.Schedule;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
-import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;
 import com.sarangjoshi.uwcalendar.network.NetworkOps;
 
 import java.io.IOException;
-import java.util.Set;
 
 public class ScheduleActivity extends AppCompatActivity implements NetworkOps.ScheduleLoadedListener {
     public static final int ADD_CLASS_REQUEST = 2001;
@@ -77,7 +75,7 @@ public class ScheduleActivity extends AppCompatActivity implements NetworkOps.Sc
         });
 
         // Listen to schedule changes
-        NetworkOps.getInstance().requestSchedule(this);
+        NetworkOps.getInstance().retrieveSchedule(this);
 
         mClassesList = (ListView) findViewById(R.id.classes_list);
         mClassesList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {

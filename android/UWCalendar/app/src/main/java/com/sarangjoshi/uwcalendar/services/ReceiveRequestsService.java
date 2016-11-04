@@ -79,3 +79,28 @@ public class ReceiveRequestsService extends IntentService {
         }
     }
 }
+
+/**
+ * TODO remove, this is used when the eventual service sends the data through an intent
+ */
+//    private void updateRequests(Intent intent) {
+//        mRequests.clear();
+//
+//        String[] keys = intent.getStringArrayExtra(ReceiveRequestsService.KEYS);
+//        String[] ids = intent.getStringArrayExtra(ReceiveRequestsService.IDS);
+//
+//        for (int i = 0; i < keys.length; ++i) {
+//            mRequests.add(new Request(keys[i], fb.getUsernameAndIdFromId(ids[i])));
+//        }
+//
+//        ArrayAdapter<Request> adapter = new ArrayAdapter<Request>(this, android.R.layout.simple_list_item_1, mRequests) {
+//            @Override
+//            public View getView(int position, View convertView, ViewGroup parent) {
+//                TextView v = (TextView) super.getView(position, convertView, parent);
+//                v.setText(getItem(position).usernameAndId.username);
+//                return v;
+//            }
+//        };
+//
+//        mRequestsList.setAdapter(adapter);
+//    }

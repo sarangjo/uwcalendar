@@ -1,8 +1,5 @@
 package com.sarangjoshi.uwcalendar.content;
 
-import android.annotation.SuppressLint;
-import android.support.annotation.NonNull;
-
 import com.google.firebase.database.DataSnapshot;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.GoogleAuthData;
@@ -93,26 +90,6 @@ public class Quarter {
     }
 
     /**
-     * Get a list of days that represent the day-by-day breakdown of the schedule.
-     */
-    public List<Day> getWeek() {
-        List<Day> week = new ArrayList<>();
-
-        for (int i = 0; i < ScheduleData.DAYS_MAP.length; i++) {
-            week.add(new Day());
-
-            for (SingleClass c : this.mClassList) {
-                int days = c.getDays();
-                if ((days & (1 << i)) != 0) {
-                    week.get(i).add(mId, c);
-                }
-            }
-        }
-
-        return week;
-    }
-
-    /**
      * Given a DataSnapshot of the quarter, returns a representation of that quarter's schedule.
      */
     public static Quarter valueOf(String id, DataSnapshot snapshot) {
@@ -121,25 +98,6 @@ public class Quarter {
             q.addClass(singleClass.getValue(SingleClass.class), singleClass.getKey());
         }
         return q;
-    }
-
-    /**
-     * Connect two quarters together.
-     */
-    public static List<Day> connect(Quarter quarter1, Quarter quarter2) {
-        if (quarter1 == null || quarter2 == null) {
-            return null;
-        }
-        // Go day by day
-        List<Day> mainWeek = quarter1.getWeek();
-        List<Day> otherWeek = quarter2.getWeek();
-
-        for (int i = 0; i < mainWeek.size(); i++) {
-            mainWeek.get(i).combine(otherWeek.get(i));
-        }
-
-        // mainWeek is combined
-        return mainWeek;
     }
 
 }

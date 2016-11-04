@@ -1,11 +1,12 @@
 package com.sarangjoshi.uwcalendar;
 
 import android.app.ProgressDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.widget.ExpandableListView;
 
+import com.sarangjoshi.uwcalendar.adapters.DayListAdapter;
 import com.sarangjoshi.uwcalendar.content.Day;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.network.NetworkOps;
@@ -42,7 +43,7 @@ public class ConnectionActivity extends AppCompatActivity implements NetworkOps.
 
         NetworkOps ops = NetworkOps.getInstance();
         String id = getIntent().getStringExtra(FirebaseData.CONNECTION_ID_KEY);
-        ops.requestConnection(id, this);
+        ops.retrieveConnection(id, this);
     }
 
     @Override

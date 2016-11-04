@@ -1,20 +1,32 @@
 package com.sarangjoshi.uwcalendar.content;
 
 import android.content.Context;
-import android.os.AsyncTask;
 
 import com.google.firebase.database.DataSnapshot;
-import com.sarangjoshi.uwcalendar.HomeActivity;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.network.NetworkOps;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Created by Administrator on 10/26/2016.
+ * TODO
  */
-public class User implements Schedule.RetrieveSchedulesListener {
+public class User {
     private static User ourInstance = new User();
 
     public static User getInstance() {
@@ -36,11 +48,6 @@ public class User implements Schedule.RetrieveSchedulesListener {
      */
     public void acceptRequest(Context context, int position) {
         new AcceptRequestTask(context).execute(position);
-    }
-
-    @Override
-    public void schedulesRetrieved(Request r, Schedule schedule1, Schedule schedule2) {
-
     }
 
     public Connection getConnection(int position) {
@@ -96,10 +103,73 @@ public class User implements Schedule.RetrieveSchedulesListener {
         protected Boolean doInBackground(Integer... params) {
             Request requestToAccept = mRequests.get(params[0]);
 
-            // First, request schedules to combine
-            Schedule.request(requestToAccept, User.this);
+            HttpURLConnection conn = null;
+            try {
+                URL url = new URL("http://uwcalendar.herokuapp.com/api/connect");
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
 
-            return null;
+                Map<String, String> postParams = new HashMap<>();
+                postParams.put("userA", fb.getUid());
+                postParams.put("userB", requestToAccept.usernameAndId.id);
+                postParams.put("request", requestToAccept.key);
+                postParams.put("quarter", "sp16");
+
+                OutputStream outputPost = new BufferedOutputStream(conn.getOutputStream());
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputPost, "UTF-8"));
+                writer.write(getPostDataString(postParams));
+                writer.flush();
+                writer.close();
+                outputPost.close();
+
+                // Listen for response
+                InputStream inputPost = new BufferedInputStream(conn.getInputStream());
+
+                byte[] postResponse = new byte[512];
+                int bytesRead = inputPost.read(postResponse);
+                System.out.println(new String(Arrays.copyOfRange(postResponse, 0, bytesRead)));
+
+                return true;
+            } catch (IOException e) {
+                if (conn != null)
+                    try {
+                        // Check if error code
+                        if (conn.getResponseCode() == HttpURLConnection.HTTP_BAD_REQUEST) {
+                            InputStream errorPost = new BufferedInputStream(conn.getErrorStream());
+
+                            byte[] postResponse = new byte[512];
+                            int bytesRead = errorPost.read(postResponse);
+                            System.err.println(new String(Arrays.copyOfRange(postResponse, 0, bytesRead)));
+                        } else
+                            e.printStackTrace();
+                    } catch (IOException e2) {
+                        e2.printStackTrace();
+                    }
+                e.printStackTrace();
+
+                return false;
+            }
+        }
+
+        /**
+         * Converts from a map to a URL encoded String.
+         */
+        private String getPostDataString(Map<String, String> params) throws UnsupportedEncodingException {
+            StringBuilder result = new StringBuilder();
+            boolean first = true;
+            for (String key : params.keySet()) {
+                if (first)
+                    first = false;
+                else
+                    result.append("&");
+
+                result.append(URLEncoder.encode(key, "UTF-8"));
+                result.append("=");
+                result.append(URLEncoder.encode(params.get(key), "UTF-8"));
+            }
+
+            return result.toString();
         }
     }
 

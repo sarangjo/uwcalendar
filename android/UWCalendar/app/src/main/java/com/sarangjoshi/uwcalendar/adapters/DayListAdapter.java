@@ -1,4 +1,4 @@
-package com.sarangjoshi.uwcalendar;
+package com.sarangjoshi.uwcalendar.adapters;
 
 import android.content.Context;
 import android.graphics.Typeface;
@@ -9,7 +9,7 @@ import android.widget.BaseExpandableListAdapter;
 import android.widget.TextView;
 
 import com.sarangjoshi.uwcalendar.content.Day;
-import com.sarangjoshi.uwcalendar.content.Segment;
+import com.sarangjoshi.uwcalendar.content.Marker;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
 
 import java.util.List;
@@ -35,7 +35,7 @@ public class DayListAdapter extends BaseExpandableListAdapter {
 
     @Override
     public int getChildrenCount(int groupPosition) {
-        return mWeek.get(groupPosition).getSegments().size();
+        return mWeek.get(groupPosition).getMarkers().size();
     }
 
     @Override
@@ -45,7 +45,7 @@ public class DayListAdapter extends BaseExpandableListAdapter {
 
     @Override
     public Object getChild(int groupPosition, int childPosition) {
-        return mWeek.get(groupPosition).getSegments().get(childPosition);
+        return mWeek.get(groupPosition).getMarkers().get(childPosition);
     }
 
     @Override
@@ -80,7 +80,7 @@ public class DayListAdapter extends BaseExpandableListAdapter {
 
     @Override
     public View getChildView(int groupPosition, int childPosition, boolean isLastChild, View convertView, ViewGroup parent) {
-        Segment seg = (Segment) getChild(groupPosition, childPosition);
+        Marker marker = (Marker) getChild(groupPosition, childPosition);
 
         if (convertView == null) {
             LayoutInflater inflater = (LayoutInflater) this.mContext
@@ -89,7 +89,7 @@ public class DayListAdapter extends BaseExpandableListAdapter {
         }
 
         TextView childView = (TextView) convertView;
-        childView.setText(seg.toString());
+        childView.setText(marker.toString());
 
         return convertView;
     }

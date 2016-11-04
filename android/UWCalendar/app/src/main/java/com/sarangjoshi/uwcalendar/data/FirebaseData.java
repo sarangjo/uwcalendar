@@ -2,17 +2,13 @@ package com.sarangjoshi.uwcalendar.data;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.sarangjoshi.uwcalendar.content.Segment;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * TODO: add class comment
@@ -30,13 +26,13 @@ public class FirebaseData {
     public static final String REQUESTS_KEY = "requests";
     public static final String CONNECTIONS_KEY = "connections";
 
-    public static final String PARTICIPANTS_KEY = "participants";
     public static final String CONNECTION_ID_KEY = "connectionId";
     public static final String CONNECTION_WITH_KEY = "with";
     public static final String DATA_KEY = "data";
     public static final String START_KEY = "start";
     public static final String END_KEY = "end";
     public static final String CLASSES_KEY = "classes";
+    public static final String TIME_KEY = "time";
 
     private static FirebaseData ourInstance = new FirebaseData();
 
@@ -199,20 +195,6 @@ public class FirebaseData {
             }
         }
         return null;
-    }
-
-    /**
-     * Saves a combined segment in a connection, ONLY if the segment has at least
-     * one class in it.
-     */
-    public void saveSegment(DatabaseReference segRef, Segment s) {
-        segRef.child(START_KEY).setValue(String.format(Locale.US, "%02d:%02d", s.startHr, s.startMin));
-        segRef.child(END_KEY).setValue(String.format(Locale.US, "%02d:%02d", s.endHr, s.endMin));
-        DatabaseReference classesRef = segRef.child(CLASSES_KEY);
-
-        for (String id : s.classesMap.keySet()) {
-            classesRef.child(id).setValue(s.classesMap.get(id).getName());
-        }
     }
 
     public String getUsernameFromId(String id) {

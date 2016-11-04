@@ -7,12 +7,8 @@ import android.util.Log;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
-import com.sarangjoshi.uwcalendar.ConnectionActivity;
-import com.sarangjoshi.uwcalendar.HomeActivity;
 import com.sarangjoshi.uwcalendar.content.Day;
-import com.sarangjoshi.uwcalendar.content.Request;
 import com.sarangjoshi.uwcalendar.content.Schedule;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;
@@ -42,22 +38,23 @@ public class NetworkOps {
     private FirebaseData fb = FirebaseData.getInstance();
 
     /**
-     * Download a new Connection.
+     * Retrieves a new Connection.
      *
      * @param id connection id
      */
-    public void requestConnection(String id, final ConnectionLoadedListener listener) {
+    public void retrieveConnection(String id, final ConnectionLoadedListener listener) {
         FirebaseData.getInstance().getConnectionsRef().child(id).child(FirebaseData.DATA_KEY).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot connection) {
+                // TODO: 11/4/2016 Update connection conversion
                 Map<String, List<Day>> connectionByQuarters = new HashMap<>();
 
-                for (DataSnapshot child : connection.getChildren()) {
+                for (DataSnapshot quarter : connection.getChildren()) {
                     List<Day> week = new ArrayList<>();
                     for (int i = 0; i < ScheduleData.DAYS_MAP.length; ++i) {
-                        week.add(Day.valueOf(child.child(i + "")));
+                        week.add(Day.valueOf(quarter.child(i + "")));
                     }
-                    connectionByQuarters.put(child.getKey(), week);
+                    connectionByQuarters.put(quarter.getKey(), week);
                 }
 
                 // Notify listener
@@ -78,7 +75,7 @@ public class NetworkOps {
     /**
      * Download a new Schedule.
      */
-    public void requestSchedule(final ScheduleLoadedListener listener) {
+    public void retrieveSchedule(final ScheduleLoadedListener listener) {
         final FirebaseData fb = FirebaseData.getInstance();
         fb.setScheduleValueListener(new ValueEventListener() {
             @Override
@@ -97,7 +94,10 @@ public class NetworkOps {
         void scheduleLoaded(Schedule s);
     }
 
-    public void requestUsers(final UsersLoadedListener listener) {
+    /**
+     * Download all users.
+     */
+    public void retrieveUsers(final UsersLoadedListener listener) {
         // Global name<-->id one to one mapping
         fb.getUsersRef().addValueEventListener(new ValueEventListener() {
             @Override
@@ -145,6 +145,7 @@ public class NetworkOps {
 
         @Override
         protected void onPostExecute(final Boolean success) {
+            // TODO: 11/4/2016 Do something with the success
             mDialog.dismiss();
         }
 

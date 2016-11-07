@@ -35,6 +35,7 @@ import com.sarangjoshi.uwcalendar.fragments.ChangePasswordFragment;
 import com.sarangjoshi.uwcalendar.fragments.RequestScheduleFragment;
 import com.sarangjoshi.uwcalendar.network.NetworkOps;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -206,8 +207,8 @@ public class HomeActivity extends AppCompatActivity
     @Override
     public void usernameToRequestSelected(final FirebaseData.UsernameAndId selected) {
         mDialog.setMessage("Requesting schedule...");
+        mDialog.show();
         // First check if a request has already been issued
-        // TODO also check if a connection already exists
         DatabaseReference reqRef = fb.getRequestsRef().child(selected.id);
         reqRef.orderByValue().equalTo(fb.getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -218,18 +219,37 @@ public class HomeActivity extends AppCompatActivity
                     Toast.makeText(HomeActivity.this, "Request to " + selected.username + " has already been made.", Toast.LENGTH_LONG).show();
                 } else {
                     // No request has been made so far.
-                    // TODO: Check if a connection exists
+                    // TODO Now check if a connection exists
+                    DatabaseReference connsRef = fb.getCurrentUserRef().child(FirebaseData.CONNECTIONS_KEY);
+                    connsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            for (DataSnapshot child : dataSnapshot.getChildren()) {
+                                if (child.child(FirebaseData.CONNECTION_WITH_KEY).getValue().equals(selected.id)) {
+                                    mDialog.hide();
+                                    Toast.makeText(HomeActivity.this, "A connection with " + selected.username + " already exists.", Toast.LENGTH_LONG).show();
+                                    return;
+                                }
+                            }
+                            // Add a request to the object
+                            fb.getRequestsRef().child(selected.id).push().setValue(fb.getUid());
+                            Toast.makeText(HomeActivity.this, "Request made to " + selected.username, Toast.LENGTH_LONG).show();
+                            mDialog.hide();
+                        }
 
-                    // Add a request to the object
-                    fb.getRequestsRef().child(selected.id).push().setValue(fb.getUid());
-                    Toast.makeText(HomeActivity.this, "Request made to " + selected.username, Toast.LENGTH_LONG).show();
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+                            // TODO: 11/5/2016 lelly
+                            mDialog.hide();
+                        }
+                    });
                 }
-                mDialog.hide();
             }
 
             @Override
             public void onCancelled(DatabaseError DatabaseError) {
                 // TODO as always
+                mDialog.hide();
             }
         });
     }

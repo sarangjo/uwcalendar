@@ -112,6 +112,7 @@ public class HomeActivity extends AppCompatActivity
                         }).setNegativeButton("Decline", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
+                                // TODO Decline
                             }
                         });
 

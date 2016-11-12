@@ -1,4 +1,4 @@
-package com.sarangjoshi.uwcalendar;
+package com.sarangjoshi.uwcalendar.activities;
 
 import android.app.Dialog;
 import android.app.ProgressDialog;
@@ -26,16 +26,15 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
+import com.sarangjoshi.uwcalendar.R;
 import com.sarangjoshi.uwcalendar.content.Connection;
 import com.sarangjoshi.uwcalendar.content.Request;
 import com.sarangjoshi.uwcalendar.content.User;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
-import com.sarangjoshi.uwcalendar.data.ScheduleData;
 import com.sarangjoshi.uwcalendar.fragments.ChangePasswordFragment;
 import com.sarangjoshi.uwcalendar.fragments.RequestScheduleFragment;
 import com.sarangjoshi.uwcalendar.network.NetworkOps;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -136,11 +135,64 @@ public class HomeActivity extends AppCompatActivity
                 startActivity(intent);
             }
         });
+        // TODO implement
         mConnectionsList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 mUser.deleteConnection(HomeActivity.this, position);
                 return true;
+            }
+        });
+    }
+
+    @Override
+    public void onUsersLoaded(List<FirebaseData.UsernameAndId> usersList) {
+        fb.setUsers(usersList);
+        mDialog.hide();
+
+        // Get initial user-specific data
+        fb.getCurrentUserRef().child(FirebaseData.USERNAME_KEY).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                TextView usernameTextView = (TextView) findViewById(R.id.username_text_view);
+                if (usernameTextView != null)
+                    try {
+                        usernameTextView.setText(snapshot.getValue().toString());
+                    } catch (NullPointerException e) {
+                        usernameTextView.setText(getResources().getString(R.string.name_error));
+                    }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError DatabaseError) {
+                // TODO lel
+                Log.d(TAG, "User download cancelled.");
+            }
+        });
+
+        // Listen to user connection changes
+        fb.setConnectionsValueListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                updateConnections(dataSnapshot);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError DatabaseError) {
+
+            }
+        });
+
+        // Listen to user request changes
+        fb.setRequestsValueListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                updateRequests(snapshot);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError DatabaseError) {
+                Log.d("Download error", DatabaseError.getMessage());
             }
         });
     }
@@ -274,57 +326,5 @@ public class HomeActivity extends AppCompatActivity
                         mDialog.hide();
                     }
                 });
-    }
-
-    @Override
-    public void usersLoaded(List<FirebaseData.UsernameAndId> usersList) {
-        fb.setUsers(usersList);
-        mDialog.hide();
-
-        // Get initial user-specific data
-        fb.getCurrentUserRef().child(FirebaseData.USERNAME_KEY).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot snapshot) {
-                TextView usernameTextView = (TextView) findViewById(R.id.username_text_view);
-                if (usernameTextView != null)
-                    try {
-                        usernameTextView.setText(snapshot.getValue().toString());
-                    } catch (NullPointerException e) {
-                        usernameTextView.setText(getResources().getString(R.string.name_error));
-                    }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError DatabaseError) {
-                // TODO lel
-                Log.d(TAG, "User download cancelled.");
-            }
-        });
-
-        // Listen to user connection changes
-        fb.setConnectionsValueListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                updateConnections(dataSnapshot);
-            }
-
-            @Override
-            public void onCancelled(DatabaseError DatabaseError) {
-
-            }
-        });
-
-        // Listen to user request changes
-        fb.setRequestsValueListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot snapshot) {
-                updateRequests(snapshot);
-            }
-
-            @Override
-            public void onCancelled(DatabaseError DatabaseError) {
-                Log.d("Download error", DatabaseError.getMessage());
-            }
-        });
     }
 }

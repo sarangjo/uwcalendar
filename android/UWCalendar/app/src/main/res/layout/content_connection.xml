@@ -10,8 +10,13 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context="com.sarangjoshi.uwcalendar.ConnectionActivity"
+    tools:context="com.sarangjoshi.uwcalendar.activities.ConnectionActivity"
     tools:showIn="@layout/activity_connection">
+
+    <Spinner
+        android:id="@+id/quarter_spinner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"></Spinner>
 
     <ExpandableListView
         android:id="@+id/connection_view"

@@ -1,4 +1,4 @@
-package com.sarangjoshi.uwcalendar;
+package com.sarangjoshi.uwcalendar.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -12,6 +12,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Spinner;
 
+import com.sarangjoshi.uwcalendar.R;
 import com.sarangjoshi.uwcalendar.content.Schedule;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;

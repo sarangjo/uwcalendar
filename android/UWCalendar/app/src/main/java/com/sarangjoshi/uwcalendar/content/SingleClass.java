@@ -5,7 +5,7 @@ import android.content.Intent;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventDateTime;
-import com.sarangjoshi.uwcalendar.AddClassActivity;
+import com.sarangjoshi.uwcalendar.activities.AddClassActivity;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;
 
 import java.text.ParseException;

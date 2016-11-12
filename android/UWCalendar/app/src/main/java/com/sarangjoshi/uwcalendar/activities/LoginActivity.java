@@ -1,4 +1,4 @@
-package com.sarangjoshi.uwcalendar;
+package com.sarangjoshi.uwcalendar.activities;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -30,6 +30,7 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.sarangjoshi.uwcalendar.R;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.fragments.SetUsernameFragment;
 

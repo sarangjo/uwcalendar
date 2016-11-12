@@ -1,4 +1,4 @@
-package com.sarangjoshi.uwcalendar;
+package com.sarangjoshi.uwcalendar.activities;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
@@ -20,6 +20,7 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TimePicker;
 
+import com.sarangjoshi.uwcalendar.R;
 import com.sarangjoshi.uwcalendar.data.ScheduleData;
 
 import java.util.ArrayList;

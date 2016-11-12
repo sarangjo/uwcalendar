@@ -68,7 +68,7 @@ public class DayListAdapter extends BaseExpandableListAdapter {
         if (convertView == null) {
             LayoutInflater inflater = (LayoutInflater) this.mContext
                     .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            convertView = inflater.inflate(android.R.layout.simple_list_item_1, null);
+            convertView = inflater.inflate(android.R.layout.simple_expandable_list_item_1, null);
         }
 
         TextView groupHeader = (TextView) convertView;

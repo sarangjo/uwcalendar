@@ -58,7 +58,7 @@ public class NetworkOps {
                 }
 
                 // Notify listener
-                listener.connectionLoaded(connectionByQuarters);
+                listener.onConnectionLoaded(connectionByQuarters);
             }
 
             @Override
@@ -69,7 +69,7 @@ public class NetworkOps {
     }
 
     public interface ConnectionLoadedListener {
-        void connectionLoaded(Map<String, List<Day>> connection);
+        void onConnectionLoaded(Map<String, List<Day>> connection);
     }
 
     /**
@@ -107,7 +107,7 @@ public class NetworkOps {
                     usersList.add(new FirebaseData.UsernameAndId(user.child(USERNAME_KEY).getValue().toString(),
                             user.getKey()));
                 }
-                listener.usersLoaded(usersList);
+                listener.onUsersLoaded(usersList);
             }
 
             @Override
@@ -118,7 +118,7 @@ public class NetworkOps {
     }
 
     public interface UsersLoadedListener {
-        void usersLoaded(List<FirebaseData.UsernameAndId> usersList);
+        void onUsersLoaded(List<FirebaseData.UsernameAndId> usersList);
     }
 
     /**
@@ -129,9 +129,11 @@ public class NetworkOps {
     public static abstract class OperationTask<T> extends AsyncTask<T, Void, Boolean> {
         private ProgressDialog mDialog;
         private String mMessage;
+        protected Context mContext;
 
         public OperationTask(Context context, String message) {
             this.mDialog = new ProgressDialog(context);
+            this.mContext = context;
             this.mMessage = message;
         }
 

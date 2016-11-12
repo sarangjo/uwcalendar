@@ -1,9 +1,9 @@
 package com.sarangjoshi.uwcalendar.content;
 
 import android.content.Context;
+import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
-import com.sarangjoshi.uwcalendar.HomeActivity;
 import com.sarangjoshi.uwcalendar.data.FirebaseData;
 import com.sarangjoshi.uwcalendar.network.NetworkOps;
 
@@ -92,22 +92,28 @@ public class User {
 
                 return true;
             } catch (IOException e) {
-                if (conn != null)
+                String errorMessage = "";
+                if (conn != null) {
                     try {
-                        // Check if error code
+                        // Check if error code is bad request, then we get the error
                         if (conn.getResponseCode() == HttpURLConnection.HTTP_BAD_REQUEST) {
                             InputStream errorPost = new BufferedInputStream(conn.getErrorStream());
 
                             byte[] postResponse = new byte[512];
                             int bytesRead = errorPost.read(postResponse);
-                            System.err.println(new String(Arrays.copyOfRange(postResponse, 0, bytesRead)));
-                        } else
-                            e.printStackTrace();
+                            errorMessage = new String(Arrays.copyOfRange(postResponse, 0, bytesRead));
+                        }
                     } catch (IOException e2) {
                         e2.printStackTrace();
+                        errorMessage = e2.getMessage();
                     }
-                e.printStackTrace();
+                }
+                if (errorMessage.isEmpty()) {
+                    e.printStackTrace();
+                    errorMessage = e.getMessage();
+                }
 
+                Toast.makeText(mContext, "Error occurred: " + errorMessage, Toast.LENGTH_LONG).show();
                 return false;
             }
         }
@@ -133,9 +139,24 @@ public class User {
         }
     }
 
+    public void declineRequest(Context context, int position) {
+        new DeclineRequestTask(context).execute(position);
+    }
 
-    public Connection getConnection(int position) {
-        return mConnections.get(position);
+    /**
+     * Decline a connection request. Parameters: position
+     */
+    private class DeclineRequestTask extends NetworkOps.OperationTask<Integer> {
+        DeclineRequestTask(Context context) {
+            super(context, "Declining request...");
+        }
+
+        @Override
+        protected Boolean doInBackground(Integer... params) {
+            Request request = mRequests.get(params[0]);
+            fb.getRequestsRef().child(fb.getUid()).child(request.key).removeValue();
+            return true;
+        }
     }
 
     public boolean deleteConnection(Context context, int position) {
@@ -153,9 +174,9 @@ public class User {
 
         @Override
         protected Boolean doInBackground(Integer... params) {
-            // TODO: 10/23/2016 actually delete the task
-            int position = params[0];
-            return null;
+            // TODO: 10/23/2016 actually delete the connection
+            Toast.makeText(mContext, "This will be implemented soon!", Toast.LENGTH_LONG).show();
+            return true;
         }
     }
 
@@ -191,24 +212,7 @@ public class User {
         return mConnections;
     }
 
-    public void declineRequest(Context context, int position) {
-        new DeclineRequestTask(context).execute(position);
+    public Connection getConnection(int position) {
+        return mConnections.get(position);
     }
-
-    /**
-     * Decline a connection request. Parameters: position
-     */
-    private class DeclineRequestTask extends NetworkOps.OperationTask<Integer> {
-        DeclineRequestTask(Context context) {
-            super(context, "Declining request...");
-        }
-
-        @Override
-        protected Boolean doInBackground(Integer... params) {
-            Request requestToAccept = mRequests.get(params[0]);
-            //TODO
-            return false;
-        }
-    }
-
 }

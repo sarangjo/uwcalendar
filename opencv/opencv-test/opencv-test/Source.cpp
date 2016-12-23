@@ -7,111 +7,147 @@
 using namespace cv;
 using namespace std;
 
-static void help()
-{
-	cout << "\nThis program demonstrates line finding with the Hough transform.\n"
-		"Usage:\n"
-		"./houghlines <image_name>, Default is ../data/pic1.png\n" << endl;
-}
+#define THRESHOLD			15
+#define IN_THRESH(x,y)		abs((x) - (y)) < THRESHOLD
 
-int main(int argc, char** argv)
-{
-	cv::CommandLineParser parser(argc, argv,
-		"{help h||}{@image|../data/pic1.png|}"
-	);
-	if (parser.has("help"))
+Vec4i findLeftEdge(vector<Vec4i> lines, size_t width) {
+	vector<Vec4i> desiredLines = vector<Vec4i>();
+
+	// Only verticals on the left quarter of the image
+	for (auto line : lines)
 	{
-		help();
-		return 0;
-	}
-	string filename = parser.get<string>("@image");
-	if (filename.empty())
-	{
-		help();
-		cout << "no image_name provided" << endl;
-		return -1;
-	}
-	Mat src = imread(filename, 0);
-	if (src.empty())
-	{
-		help();
-		cout << "can not open " << filename << endl;
-		return -1;
-	}
-
-	// Find edges and convert to 
-	Mat dst, cdst;
-	Canny(src, dst, 50, 200, 3);
-	cvtColor(dst, cdst, COLOR_GRAY2BGR);
-
-#if 0
-	vector<Vec2f> lines;
-	HoughLines(dst, lines, 1, CV_PI / 180, 100, 0, 0);
-
-	for (size_t i = 0; i < lines.size(); i++)
-	{
-		float rho = lines[i][0], theta = lines[i][1];
-		Point pt1, pt2;
-		double a = cos(theta), b = sin(theta);
-		double x0 = a*rho, y0 = b*rho;
-		pt1.x = cvRound(x0 + 1000 * (-b));
-		pt1.y = cvRound(y0 + 1000 * (a));
-		pt2.x = cvRound(x0 - 1000 * (-b));
-		pt2.y = cvRound(y0 - 1000 * (a));
-		line(cdst, pt1, pt2, Scalar(0, 0, 255), 3, CV_AA);
-	}
-#else
-	vector<Vec4i> lines;
-	HoughLinesP(dst, lines, 1, CV_PI / 180, 50, 150, 10);
-
-	// 1. Find the left border of the 
-	vector<Vec4i> desired_lines = vector<Vec4i>();
-
-	int threshold = 15;
-
-	for (size_t i = 0; i < lines.size(); i++)
-	{
-		Vec4i line = lines[i];
-		// Only verticals on the left quarter of the image
-		if (abs(line[0] - line[2]) < threshold && line[0] < dst.cols/4 && line[2] < dst.cols/4) {
-			desired_lines.push_back(line);
+		if (IN_THRESH(line[0], line[2]) && (line[0] < width / 4) && (line[2] < width / 4)) {
+			desiredLines.push_back(line);
 		}
 	}
-#endif
-	//imshow("source", src);
-	//imshow("detected lines", cdst);
+
+	Vec4i rightLine = { -1, -1, -1, -1 };
 
 	// Now we want the farthest right but also the longest one
+	if (desiredLines.size() > 0) {
+		rightLine = desiredLines[0];
 
-	if (desired_lines.size() > 0) {
-		Vec4i rightLine = desired_lines[0];
-
-		// pick the farthest right of the two
-		for (size_t i = 1; i < desired_lines.size(); i++) {
-			Vec4i l = desired_lines[i];
+		// pick the farthest right
+		for (auto l : desiredLines) {
 			if (l[0] > rightLine[0]) {
 				rightLine = l;
 			}
 		}
 
-		// choose the longer of the two
-		for (size_t i = 0; i < desired_lines.size(); i++) {
-			Vec4i l = desired_lines[i];
-			if (abs(l[0] - rightLine[0]) < threshold) {
-				if (abs(l[3] - l[1]) > abs(rightLine[3] - rightLine[1])) {
+		// choose the longest
+		for (auto l : desiredLines) {
+			if (IN_THRESH(l[0], rightLine[0])) {
+				if ((abs(l[3] - l[1]) > abs(rightLine[3] - rightLine[1]))) {
 					rightLine = l;
 				}
 			}
-
 		}
+	}
+	return rightLine;
+}
 
-		line(cdst, Point(rightLine[0], rightLine[1]), Point(rightLine[2], rightLine[3]), Scalar(0, 0, 255), 3, LINE_AA);
+Vec4i findTopEdge(vector<Vec4i> lines, Vec4i leftEdge) {
+	Vec4i topEdge = { -1, -1, -1, -1 };
 
-		imwrite("../data/output.jpg", cdst);
+	// Find the longest line that shares a point with the left edge
+	for (size_t i = 0; i < lines.size(); i++) {
+		Vec4i l = lines[i];
+		// Horizontal?
+		if (IN_THRESH(l[1], l[3])) {
+			// Shares point?
+			if (IN_THRESH(l[0], leftEdge[2]) && IN_THRESH(l[1], leftEdge[3])) {
+				// Is longest?
+				if (topEdge[0] >= 0) {
+					if (abs(topEdge[2] - topEdge[0]) < abs(l[2] - l[0])) {
+						topEdge = l;
+					}
+				}
+				else {
+					topEdge = l;
+				}
+			}
+		}
 	}
 
+	return topEdge;
+}
 
+uint32_t getHourHeight(Mat timeline) {
+	Mat edges;
+	Canny(timeline, edges, 50, 200);
+
+	// Go through the edges somehow
+	vector<vector<Point>> contours;
+	vector<Point> heirarchy;
+	findContours(edges, contours, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+
+	Mat timelineContours = Mat::zeros(edges.size(), CV_8UC3);
+	for (int i = 0; i < contours.size(); i++) {
+		drawContours(timelineContours, contours, i, Scalar(255, 255, 255));
+	}
+	imwrite("../data/timelineContours.jpg", timelineContours);
+
+	// TODO:
+	// - Go through each of the contours and convert them into high and low Y values
+	// - Attempt to normalize each of the vertical ranges and eliminate non-timeline elements
+	// - Finally, average out the distances between consecutive contours (top value to top value) and use as hour height
+
+	return 0;
+}
+
+int main(int argc, char** argv)
+{
+	string filename = "../data/schedule.jpg";
+	Mat src = imread(filename);
+	if (src.empty())
+	{
+		cout << "can't open " << filename << endl;
+		return -1;
+	}
+
+	// Convert to gray
+	Mat gray = src;
+	cvtColor(src, gray, COLOR_BGR2GRAY);
+
+	// Detect edges
+	Mat edges;
+	Canny(gray, edges, 50, 200);
+
+	// Set up "output" matrix
+	Mat output;
+	// We want it BGR so that we can draw colored lines on it
+	cvtColor(edges, output, COLOR_GRAY2BGR);
+
+	// Detect lines from edges
+	vector<Vec4i> lines;
+	HoughLinesP(edges, lines, 1, CV_PI / 180, 50, 150, 10);
+
+	// Find the left edge of our schedule area
+	Vec4i leftEdge = findLeftEdge(lines, edges.cols);
+	if (leftEdge[0] < 0) {
+		return -1;
+	}
+	line(output, Point(leftEdge[0], leftEdge[1]), Point(leftEdge[2], leftEdge[3]), Scalar(0, 0, 255), 10, LINE_AA);
+	cout << "Found left edge: " << leftEdge << endl;
+
+	// Find the top edge of our schedule area
+	Vec4i topEdge = findTopEdge(lines, leftEdge);
+	if (topEdge[0] < 0) {
+		return -1;
+	}
+	line(output, Point(topEdge[0], topEdge[1]), Point(topEdge[2], topEdge[3]), Scalar(255, 0, 0), 3, LINE_AA);
+	cout << "Found top edge: " << topEdge << endl;
+
+	// Cut out the part of the schedule we care about
+	Mat sched = src(Range(leftEdge[3], leftEdge[1]), Range(topEdge[0], topEdge[2]));
+	imwrite("../data/sched.jpg", sched);
+	
+	// Now figure out how tall an hour is
+	Mat timeline = edges(Range(leftEdge[3], leftEdge[1]), Range(0, topEdge[0]));
+	imwrite("../data/timeline.jpg", timeline);
+	uint32_t hourHeight = getHourHeight(timeline);
+
+	imwrite("../data/output.jpg", output);
 	waitKey();
-
 	return 0;
 }

@@ -3,6 +3,7 @@
 #include "opencv2/imgproc/imgproc.hpp"
 
 #include <iostream>
+#include <fstream>
 #include <unordered_map>
 #include <functional>
 
@@ -56,7 +57,7 @@ Vec4i findTopEdge(vector<Vec4i> lines, Vec4i leftEdge) {
 	Vec4i topEdge = { -1, -1, -1, -1 };
 
 	// Find the longest line that shares a point with the left edge
-	for (uint32_t i = 0; i < lines.size(); i++) {
+	for (size_t i = 0; i < lines.size(); i++) {
 		Vec4i l = lines[i];
 		// Horizontal?
 		if (IN_THRESH(l[1], l[3])) {
@@ -110,7 +111,7 @@ uint32_t getHourHeight(Mat timeline) {
 	Mat rangesMat = Mat::zeros(edges.size(), CV_8UC3);
 	vector<Vec2i> combinedRanges;
 	Vec2i combinedRange = ranges[0];
-	for (uint32_t i = 1; i < ranges.size(); i++) {
+	for (size_t i = 1; i < ranges.size(); i++) {
 		Vec2i range = ranges[i];
 		// If the range is already contained, no extension needed
 		if (range[1] < combinedRange[1]) {
@@ -144,118 +145,61 @@ uint32_t getHourHeight(Mat timeline) {
 	
 	// Ignore the zeroeth range because that's the one cut in half
 	uint32_t hourHeightSum = 0;
-	for (uint32_t i = 1; i < combinedRanges.size() - 1; i++) {
+	for (size_t i = 1; i < combinedRanges.size() - 1; i++) {
 		hourHeightSum += (combinedRanges[i + 1] - combinedRanges[i])[0];
 	}
 
 	return hourHeightSum / (combinedRanges.size() - 2);
 }
 
-typedef struct {
-	Vec2i range; // inclusive, exclusive
-	Vec3b pixel;
-} PixelRange;
-
-void processDay2(Mat daySchedule, uint32_t dayIndex, uint32_t hourHeight) {
+void processDay(Mat daySchedule, uint32_t dayIndex, uint32_t hourHeight) {
 	Mat dsGray = daySchedule;
 	cvtColor(daySchedule, dsGray, CV_BGR2GRAY);
 
+	// Threshold and cancel out inconsistencies in the left and right edges
 	Mat thresh;
 	threshold(dsGray, thresh, 240, 255, THRESH_BINARY_INV);
 	rectangle(thresh, Point(0, 0), Point(thresh.cols / 10, thresh.rows), Scalar(0, 0, 0), CV_FILLED);
 	rectangle(thresh, Point((int)(thresh.cols * 0.9), 0), Point(thresh.cols, thresh.rows), Scalar(0, 0, 0), CV_FILLED);
-	imwrite("../data/thresh" + to_string(dayIndex) + ".jpg", thresh);
 
+	// Find contours in the day's schedule
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
 	findContours(thresh, contours, hierarchy, CV_RETR_EXTERNAL, CHAIN_APPROX_NONE);
 	vector<Vec2i> ranges = contoursToRanges(contours);
+	vector<Vec2i> classRanges;
 	
 	Mat contoursMat = Mat::zeros(thresh.size(), CV_8UC3);
-	for (uint32_t i = 0; i < contours.size(); i++)
+	for (size_t i = 0; i < contours.size(); i++)
 	{
-		// If range is big enough, draw it
 		Vec2i range = ranges[i];
+
+		// If range is big enough, draw it
 		if (range[1] - range[0] > hourHeight / 6) {
+			classRanges.push_back(range);
+
 			Scalar color = Scalar(0, 255, 0);
 			drawContours(contoursMat, contours, i, color, 10, 8, hierarchy, 0);
 		}
 	}
 	imwrite("../data/contour" + to_string(dayIndex) + ".jpg", contoursMat);
-}
 
-struct Vec3bHash {
-	unsigned long operator()(Vec3b const& v) const
-	{
-		size_t x0 = hash<uchar>{}(v[0]);
-		size_t x1 = hash<uchar>{}(v[1]);
-		size_t x2 = hash<uchar>{}(v[2]);
-		return x0 ^ (x1 << 1) ^ (x2 << 2);
+	vector<Mat> classMats;
+	// Extract the classes from daySchedule
+	for (size_t i = 0; i < classRanges.size(); i++) {
+		Vec2i range = classRanges[i];
+
+		Mat classMat = daySchedule(Range(range[0], range[1]), Range(0, daySchedule.cols));
+		imwrite("../data/" + to_string(dayIndex) + "-" + to_string(i) + ".jpg", classMat);
+		classMats.push_back(classMat);
 	}
-};
 
-void processDay(Mat daySchedule) {
-	vector<PixelRange> pixelRanges;
-	PixelRange currPixel;
-	bool first = true;
-
-	uchar r = 234, g = 227, b = 211;
-
-	Mat schedColors = Mat::zeros(daySchedule.rows, 50, CV_8UC3);
-
-	for (uint32_t i = 0; i < daySchedule.rows; i++) {
-		Vec3b *row = daySchedule.ptr<Vec3b>(i);
-
-		// Count occurrences of pixel
-		unordered_map<
-			Vec3b,
-			int,
-			Vec3bHash
-		> pixelOccurrences;
-
-		for (uint32_t j = 0; j < daySchedule.cols; j++) {
-			Vec3b pixel = row[j];
-			if (pixelOccurrences.count(pixel)) {
-				pixelOccurrences[pixel]++;
-			}
-			else {
-				pixelOccurrences[pixel] = 1;
-			}
-		}
-
-		// Find the highest occurring Vec3b
-		int occurrences = -1;
-		Vec3b maxPixel;
-		for (auto &pair : pixelOccurrences) {
-			if (pair.second > occurrences) {
-				maxPixel = pair.first;
-				occurrences = pair.second;
-			}
-		}
-
-		line(schedColors, Point(0, i), Point(50, i), maxPixel);
-		// Append to the current range
-		//if (first) {
-		//	first = false;
-		//	currPixel.range[1]++;
-		//	currPixel.pixel = maxPixel;
-		//}
-		//else if (currPixel.pixel == maxPixel) {
-		//	currPixel.range[1]++;
-		//} else {
-		//	pixelRanges.push_back(currPixel);
-		//	currPixel = { Vec2i(i, i+1), maxPixel };
-		//}
+	ofstream classFile;
+	classFile.open(to_string(dayIndex) + ".txt");
+	classFile << "Day " << dayIndex << endl;
+	for (auto classMat : classMats) {
+		// Convert Mat to text
 	}
-	// fencepost
-	//pixelRanges.push_back(currPixel);
-
-	// Construct colorized matrix
-	//Mat schedColors = Mat::zeros(daySchedule.rows, 50, CV_8UC3);
-	/*for (auto range : pixelRanges) {
-		rectangle(schedColors, Point(0, range.range[0]), Point(50, range.range[1]-1), range.pixel);
-	}*/
-	imwrite("../data/schedColors.jpg", schedColors);
 }
 
 int main(int argc, char** argv)
@@ -311,12 +255,12 @@ int main(int argc, char** argv)
 	cout << "Found hour height: " << hourHeight << endl;
 
 	// Process the schedule day by day; for now assume all 5 days are in the schedule
-	for (uint32_t i = 0; i < 5; i++) {
+	for (size_t i = 0; i < 5; i++) {
 		Mat daySchedule = sched(Range(0, sched.rows), Range(i * sched.cols / 5, (i + 1) * (sched.cols / 5)));
 		imwrite("../data/day" + to_string(i) + ".jpg", daySchedule);
 
 		// TODO: process
-		processDay2(daySchedule, i, hourHeight);
+		processDay(daySchedule, i, hourHeight);
 		//break;
 	}
 

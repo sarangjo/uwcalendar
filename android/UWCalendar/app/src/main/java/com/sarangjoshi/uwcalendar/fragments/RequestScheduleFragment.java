@@ -81,14 +81,14 @@ public class RequestScheduleFragment extends DialogFragment {
 
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        mListener.usernameToRequestSelected(objects.get(which));
+                        mListener.onScheduleRequested(objects.get(which));
                     }
                 }.init(objects));
         return builder.create();
     }
 
     public interface NameSelectedListener {
-        void usernameToRequestSelected(FirebaseData.UsernameAndId selected);
+        void onScheduleRequested(FirebaseData.UsernameAndId selected);
     }
 
 }

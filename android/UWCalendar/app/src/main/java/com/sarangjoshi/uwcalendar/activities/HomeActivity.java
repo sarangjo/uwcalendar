@@ -259,7 +259,7 @@ public class HomeActivity extends AppCompatActivity
     //// FRAGMENT RESPONSES ////
 
     @Override
-    public void usernameToRequestSelected(final FirebaseData.UsernameAndId selected) {
+    public void onScheduleRequested(final FirebaseData.UsernameAndId selected) {
         mDialog.setMessage("Requesting schedule...");
         mDialog.show();
         // First check if a request has already been issued

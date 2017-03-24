@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.BaseExpandableListAdapter;
 import android.widget.TextView;
 
+import com.sarangjoshi.uwcalendar.activities.ConnectionActivity;
 import com.sarangjoshi.uwcalendar.content.Day;
 import com.sarangjoshi.uwcalendar.content.Marker;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
@@ -15,7 +16,7 @@ import com.sarangjoshi.uwcalendar.content.SingleClass;
 import java.util.List;
 
 /**
- * TODO: add class comment
+ * An adapter to represent the day list of a combined schedule. Primarily used in {@link ConnectionActivity}.
  *
  * @author Sarang Joshi
  */

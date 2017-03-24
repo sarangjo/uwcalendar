@@ -1,6 +1,7 @@
 package com.sarangjoshi.uwcalendar.content;
 
 import android.content.Context;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
@@ -28,6 +29,7 @@ import java.util.Map;
  * TODO
  */
 public class User {
+    private static final String TAG = "User";
     private static User ourInstance = new User();
 
     public static User getInstance() {
@@ -113,7 +115,7 @@ public class User {
                     errorMessage = e.getMessage();
                 }
 
-                Toast.makeText(mContext, "Error occurred: " + errorMessage, Toast.LENGTH_LONG).show();
+                Log.d(TAG, "Error occurred: " + errorMessage);
                 return false;
             }
         }

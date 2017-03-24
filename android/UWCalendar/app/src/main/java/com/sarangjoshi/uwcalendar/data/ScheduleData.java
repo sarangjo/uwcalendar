@@ -19,6 +19,7 @@ public class ScheduleData {
         return ourInstance;
     }
 
+    // TODO get this from an onlnie API somehow
     private ScheduleData() {
         quarterCodes = new String[]{"wi16", "sp16", "au16"};
         quarterInfo = new HashMap<>();

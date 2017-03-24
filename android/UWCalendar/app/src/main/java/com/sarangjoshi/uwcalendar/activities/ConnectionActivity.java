@@ -2,6 +2,7 @@ package com.sarangjoshi.uwcalendar.activities;
 
 import android.app.ProgressDialog;
 import android.os.Bundle;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -21,6 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * The activity where the connection is shown to the user.
+ */
 public class ConnectionActivity extends AppCompatActivity implements NetworkOps.ConnectionLoadedListener {
     private ExpandableListView mConnectionView;
     private ProgressDialog mDialog;
@@ -34,7 +38,11 @@ public class ConnectionActivity extends AppCompatActivity implements NetworkOps.
         setContentView(R.layout.activity_connection);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        // Set up action bar/menu for this activity
+        ActionBar actionBar = getSupportActionBar();
+        assert actionBar != null;
+        actionBar.setDisplayHomeAsUpEnabled(true);
 
         mQuarter = getIntent().getStringExtra(AddClassActivity.QUARTER_KEY);
 
@@ -52,6 +60,8 @@ public class ConnectionActivity extends AppCompatActivity implements NetworkOps.
 
         // Quarters
         Spinner spinner = (Spinner) findViewById(R.id.quarter_spinner);
+        assert spinner != null;
+
         ArrayAdapter<CharSequence> adapter = new ArrayAdapter<CharSequence>(this,
                 android.R.layout.simple_spinner_item, quarterCodes);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -62,7 +72,7 @@ public class ConnectionActivity extends AppCompatActivity implements NetworkOps.
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 mQuarter = quarterCodes[i];
                 if (mConnection != null)
-                    updateConnection();
+                    updateConnectionView();
             }
 
             @Override
@@ -75,7 +85,10 @@ public class ConnectionActivity extends AppCompatActivity implements NetworkOps.
         ops.retrieveConnection(id, this);
     }
 
-    private void updateConnection() {
+    /**
+     * Updates the connection view.
+     */
+    private void updateConnectionView() {
         List<Day> week = mConnection.get(mQuarter);
         week = (week == null) ? new ArrayList<Day>() : week;
         DayListAdapter adapter = new DayListAdapter(this, week);
@@ -85,11 +98,7 @@ public class ConnectionActivity extends AppCompatActivity implements NetworkOps.
     @Override
     public void onConnectionLoaded(Map<String, List<Day>> connection) {
         this.mConnection = connection;
-        List<Day> week = connection.get(mQuarter);
-        week = (week == null) ? new ArrayList<Day>() : week;
-        DayListAdapter adapter = new DayListAdapter(this, week);
-        mConnectionView.setAdapter(adapter);
-
+        updateConnectionView();
         mDialog.hide();
     }
 }

@@ -1,10 +1,8 @@
-package com.sarangjoshi.uwcalendar.data;
+package com.sarangjoshi.uwcalendar.singletons;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * TODO: add class comment

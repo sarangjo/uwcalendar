@@ -1,11 +1,8 @@
 package com.sarangjoshi.uwcalendar.content;
 
 import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.ValueEventListener;
-import com.sarangjoshi.uwcalendar.data.FirebaseData;
-import com.sarangjoshi.uwcalendar.data.GoogleAuthData;
-import com.sarangjoshi.uwcalendar.data.ScheduleData;
+import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
+import com.sarangjoshi.uwcalendar.singletons.GoogleAuth;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -18,10 +15,6 @@ import java.util.Map;
  * @author Sarang Joshi
  */
 public class Schedule {
-    // Singletons
-    GoogleAuthData goog;
-    FirebaseData fb;
-
     // Data
     private Map<String, Quarter> mQuarters;
     private String mId;
@@ -29,9 +22,6 @@ public class Schedule {
     public Schedule(String id) {
         mQuarters = new HashMap<>();
         mId = id;
-
-        goog = GoogleAuthData.getInstance();
-        fb = FirebaseData.getInstance();
     }
 
     /**
@@ -49,6 +39,10 @@ public class Schedule {
         if (!mQuarters.containsKey(qtr))
             mQuarters.put(qtr, new Quarter(mId, qtr));
         return mQuarters.get(qtr).getClasses();
+    }
+
+    public Quarter getQuarter(String qtr) {
+        return mQuarters.get(qtr);
     }
 
     /**

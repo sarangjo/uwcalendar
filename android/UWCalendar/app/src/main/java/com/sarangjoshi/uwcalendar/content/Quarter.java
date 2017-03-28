@@ -1,14 +1,16 @@
 package com.sarangjoshi.uwcalendar.content;
 
+import android.os.Bundle;
+
 import com.google.firebase.database.DataSnapshot;
-import com.sarangjoshi.uwcalendar.data.FirebaseData;
-import com.sarangjoshi.uwcalendar.data.GoogleAuthData;
-import com.sarangjoshi.uwcalendar.data.ScheduleData;
+import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import static com.sarangjoshi.uwcalendar.singletons.FirebaseData.CLASSES_KEY;
 
 /**
  * Represents the schedule for a single quarter.
@@ -16,22 +18,24 @@ import java.util.List;
  * @author Sarang Joshi
  */
 public class Quarter {
-    private List<SingleClass> mClassList;
-    private List<String> mClassIds;
+    private static final String USER_ID_KEY = "userId";
+    public static final String QUARTER_NAME_KEY = "quarterName";
+    private static final String CLASS_IDS_KEY = "classIds";
+
+    private ArrayList<SingleClass> mClassList;
+    private ArrayList<String> mClassIds;
     private String mName;
-    private String mId;
+    private String mUserId;
 
     private FirebaseData fb;
-    private GoogleAuthData goog;
 
-    public Quarter(String userId, String name) {
-        this.mName = name;
-        this.mId = userId;
+    public Quarter(String userId, String quarterName) {
+        this.mName = quarterName;
+        this.mUserId = userId;
         this.mClassList = new ArrayList<>();
         this.mClassIds = new ArrayList<>();
 
         fb = FirebaseData.getInstance();
-        goog = GoogleAuthData.getInstance();
     }
 
     /**
@@ -53,17 +57,6 @@ public class Quarter {
      * Save a new class to this quarter.
      */
     public void saveClass(SingleClass singleClass) throws IOException {
-        /*    // Google
-            // List the next 10 events from the primary calendar.
-            Event event = SingleClass.createGoogleEvent(mName, singleClass);
-
-            String calendarId = "primary";
-            event = goog.getService().events().insert(calendarId, event).execute();
-
-            Log.d("Event created:", event.getId());
-            singleClass.setGoogleEventId(event.getId());
-        */
-
         // Firebase
         fb.addClass(mName, singleClass);
     }
@@ -92,7 +85,7 @@ public class Quarter {
     /**
      * Given a DataSnapshot of the quarter, returns a representation of that quarter's schedule.
      */
-    public static Quarter valueOf(String id, DataSnapshot snapshot) {
+    static Quarter valueOf(String id, DataSnapshot snapshot) {
         Quarter q = new Quarter(id, snapshot.getKey());
         for (DataSnapshot singleClass : snapshot.getChildren()) {
             q.addClass(singleClass.getValue(SingleClass.class), singleClass.getKey());
@@ -100,4 +93,26 @@ public class Quarter {
         return q;
     }
 
+    public Bundle toBundle() {
+        Bundle bundle = new Bundle();
+        ArrayList<String> classStrings = new ArrayList<>();
+        for (SingleClass c : mClassList) {
+            classStrings.add(c.serialize());
+        }
+        bundle.putString(USER_ID_KEY, mUserId);
+        bundle.putString(QUARTER_NAME_KEY, mName);
+        bundle.putStringArrayList(CLASSES_KEY, classStrings);
+        bundle.putStringArrayList(CLASS_IDS_KEY, mClassIds);
+        return bundle;
+    }
+
+    public static Quarter valueOf(Bundle bundle) {
+        Quarter q = new Quarter(bundle.getString(USER_ID_KEY), bundle.getString(QUARTER_NAME_KEY));
+        List<String> classStrings = bundle.getStringArrayList(CLASSES_KEY);
+        List<String> classIds = bundle.getStringArrayList(CLASS_IDS_KEY);
+        for (int i = 0; i < classStrings.size(); i++) {
+            q.addClass(SingleClass.deserialize(classStrings.get(i)), classIds.get(i));
+        }
+        return q;
+    }
 }

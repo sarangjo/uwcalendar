@@ -1,21 +1,16 @@
 package com.sarangjoshi.uwcalendar.content;
 
 import android.support.annotation.NonNull;
-import android.support.annotation.StringDef;
 
 import com.google.firebase.database.DataSnapshot;
-import com.sarangjoshi.uwcalendar.data.FirebaseData;
+import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /**
- * TODO
+ * Represents a marker of classes in the day.
  */
 public class Marker implements Comparable<Marker> {
     public final int startHr, startMin;

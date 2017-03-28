@@ -1,7 +1,9 @@
-package com.sarangjoshi.uwcalendar.network;
+package com.sarangjoshi.uwcalendar.singletons;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -10,15 +12,13 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
 import com.sarangjoshi.uwcalendar.content.Day;
 import com.sarangjoshi.uwcalendar.content.Schedule;
-import com.sarangjoshi.uwcalendar.data.FirebaseData;
-import com.sarangjoshi.uwcalendar.data.ScheduleData;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.sarangjoshi.uwcalendar.data.FirebaseData.USERNAME_KEY;
+import static com.sarangjoshi.uwcalendar.singletons.FirebaseData.USERNAME_KEY;
 
 /**
  * TODO: add class comment
@@ -68,6 +68,13 @@ public class NetworkOps {
         });
     }
 
+    public boolean isDeviceOnline(Context context) {
+        ConnectivityManager connMgr =
+                (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+        return (networkInfo != null && networkInfo.isConnected());
+    }
+
     public interface ConnectionLoadedListener {
         void onConnectionLoaded(Map<String, List<Day>> connection);
     }
@@ -80,7 +87,7 @@ public class NetworkOps {
         fb.setScheduleValueListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
-                listener.scheduleLoaded(Schedule.valueOf(fb.getUid(), snapshot));
+                listener.onScheduleLoaded(Schedule.valueOf(fb.getUid(), snapshot));
             }
 
             @Override
@@ -91,7 +98,7 @@ public class NetworkOps {
     }
 
     public interface ScheduleLoadedListener {
-        void scheduleLoaded(Schedule s);
+        void onScheduleLoaded(Schedule s);
     }
 
     /**

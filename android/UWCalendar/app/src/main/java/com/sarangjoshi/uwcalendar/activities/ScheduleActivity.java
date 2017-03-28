@@ -11,12 +11,13 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Spinner;
+import android.widget.Toast;
 
 import com.sarangjoshi.uwcalendar.R;
 import com.sarangjoshi.uwcalendar.content.Schedule;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
-import com.sarangjoshi.uwcalendar.data.ScheduleData;
-import com.sarangjoshi.uwcalendar.network.NetworkOps;
+import com.sarangjoshi.uwcalendar.singletons.ScheduleData;
+import com.sarangjoshi.uwcalendar.singletons.NetworkOps;
 
 import java.io.IOException;
 
@@ -67,7 +68,7 @@ public class ScheduleActivity extends AppCompatActivity implements NetworkOps.Sc
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 mQuarter = quarterCodes[i];
                 if (mSchedule != null)
-                    scheduleLoaded(mSchedule);
+                    onScheduleLoaded(mSchedule);
             }
 
             @Override
@@ -99,6 +100,17 @@ public class ScheduleActivity extends AppCompatActivity implements NetworkOps.Sc
                 return true;
             }
         });
+
+    }
+
+    public void onSaveToGoogleClicked(View view) {
+        if (mSchedule != null) {
+            Intent i = new Intent(this, SaveToGoogleActivity.class);
+            i.putExtras(mSchedule.getQuarter(mQuarter).toBundle());
+            startActivity(i);
+        } else {
+            Toast.makeText(this, "Schedule not loaded", Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
@@ -131,7 +143,7 @@ public class ScheduleActivity extends AppCompatActivity implements NetworkOps.Sc
     }
 
     @Override
-    public void scheduleLoaded(Schedule s) {
+    public void onScheduleLoaded(Schedule s) {
         mSchedule = s;
         ArrayAdapter<SingleClass> adapter = new ArrayAdapter<SingleClass>(ScheduleActivity.this,
                 android.R.layout.simple_list_item_1, mSchedule.getClasses(mQuarter));

@@ -5,8 +5,8 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
-import com.sarangjoshi.uwcalendar.data.FirebaseData;
-import com.sarangjoshi.uwcalendar.network.NetworkOps;
+import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
+import com.sarangjoshi.uwcalendar.singletons.NetworkOps;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;

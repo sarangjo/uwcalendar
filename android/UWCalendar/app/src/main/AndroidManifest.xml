@@ -59,6 +59,17 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.sarangjoshi.uwcalendar.activities.HomeActivity" />
         </activity>
+
+        <activity
+            android:name=".activities.SaveToGoogleActivity"
+            android:label="Save To Google"
+            android:parentActivityName=".activities.ScheduleActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.sarangjoshi.uwcalendar.activities.ScheduleActivity" />
+        </activity>
+
         <service
             android:name=".services.ReceiveRequestsService"
             android:enabled="true"

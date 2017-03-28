@@ -30,10 +30,10 @@ import com.sarangjoshi.uwcalendar.R;
 import com.sarangjoshi.uwcalendar.content.Connection;
 import com.sarangjoshi.uwcalendar.content.Request;
 import com.sarangjoshi.uwcalendar.content.User;
-import com.sarangjoshi.uwcalendar.data.FirebaseData;
+import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 import com.sarangjoshi.uwcalendar.fragments.ChangePasswordFragment;
 import com.sarangjoshi.uwcalendar.fragments.RequestScheduleFragment;
-import com.sarangjoshi.uwcalendar.network.NetworkOps;
+import com.sarangjoshi.uwcalendar.singletons.NetworkOps;
 
 import java.util.Iterator;
 import java.util.List;

@@ -7,11 +7,9 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.format.DateFormat;
-import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -21,7 +19,7 @@ import android.widget.ListView;
 import android.widget.TimePicker;
 
 import com.sarangjoshi.uwcalendar.R;
-import com.sarangjoshi.uwcalendar.data.ScheduleData;
+import com.sarangjoshi.uwcalendar.singletons.ScheduleData;
 
 import java.util.ArrayList;
 import java.util.Calendar;

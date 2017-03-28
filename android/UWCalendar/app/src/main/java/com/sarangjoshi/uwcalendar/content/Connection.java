@@ -1,6 +1,6 @@
 package com.sarangjoshi.uwcalendar.content;
 
-import com.sarangjoshi.uwcalendar.data.FirebaseData;
+import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 
 /**
  * Representative of a connection between this user and another user.

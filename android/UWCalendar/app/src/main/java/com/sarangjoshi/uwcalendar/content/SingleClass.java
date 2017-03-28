@@ -1,13 +1,15 @@
 package com.sarangjoshi.uwcalendar.content;
 
 import android.content.Intent;
+import android.text.TextUtils;
 
 import com.google.api.client.util.DateTime;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventDateTime;
 import com.sarangjoshi.uwcalendar.activities.AddClassActivity;
-import com.sarangjoshi.uwcalendar.data.ScheduleData;
+import com.sarangjoshi.uwcalendar.singletons.ScheduleData;
 
+import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -31,9 +33,9 @@ public class SingleClass {
     private String end;
 
     private String googleEventId;
-    private String firebaseId;
 
     public SingleClass() {
+        // Do nothing
     }
 
     public SingleClass(String name, String location, int days, String start, String end) {
@@ -131,6 +133,7 @@ public class SingleClass {
         try {
             c.setTime(sdf.parse(monday)); // TODO: timezone?
         } catch (ParseException ignored) {
+            // TODO higgety handle this
         }
         c.add(Calendar.DATE, offset[0]);
 
@@ -167,5 +170,15 @@ public class SingleClass {
         }
         if (offset != null && offset.length == 1) offset[0] = val;
         return days;
+    }
+
+    String serialize() {
+        String[] arr = {name, location, "" + days, start, end};
+        return TextUtils.join(";;", arr);
+    }
+
+    static SingleClass deserialize(String s) {
+        String[] arr = s.split(";;");
+        return new SingleClass(arr[0], arr[1], Integer.parseInt(arr[2]), arr[3], arr[4]);
     }
 }

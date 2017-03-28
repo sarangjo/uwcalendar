@@ -4,7 +4,7 @@ package com.sarangjoshi.uwcalendar.content;
  * TODO: Class comment
  */
 
-import com.sarangjoshi.uwcalendar.data.FirebaseData;
+import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 
 /**
  * <b>Request</b> represents a request made by one user to another.

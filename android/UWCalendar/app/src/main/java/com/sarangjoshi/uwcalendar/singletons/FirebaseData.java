@@ -1,4 +1,4 @@
-package com.sarangjoshi.uwcalendar.data;
+package com.sarangjoshi.uwcalendar.singletons;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;

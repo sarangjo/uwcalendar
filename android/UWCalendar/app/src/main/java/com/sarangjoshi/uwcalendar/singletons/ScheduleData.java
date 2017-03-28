@@ -24,7 +24,7 @@ public class ScheduleData {
         quarterInfo.put(quarterCodes[0], new String[]{"2016-01-04", "2016-03-12"});
         quarterInfo.put(quarterCodes[1], new String[]{"2016-03-28", "2016-06-04"});
         quarterInfo.put(quarterCodes[2], new String[]{"2016-09-28", "2016-12-09"});
-        quarterInfo.put(quarterCodes[3], new String[]{"2017-03-27", "2016-06-02"});
+        quarterInfo.put(quarterCodes[3], new String[]{"2017-03-27", "2017-06-02"});
     }
 
     private String[] quarterCodes;

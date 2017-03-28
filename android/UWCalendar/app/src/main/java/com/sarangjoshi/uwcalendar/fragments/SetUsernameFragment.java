@@ -3,6 +3,7 @@ package com.sarangjoshi.uwcalendar.fragments;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -24,10 +25,10 @@ public class SetUsernameFragment extends DialogFragment {
 
     SetUsernameListener mListener;
 
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
+    public void onAttach(Context context) {
+        super.onAttach(context);
         try {
-            mListener = (SetUsernameListener) activity;
+            mListener = (SetUsernameListener) context;
         } catch (ClassCastException e) {
             // TODO: Feq!
             throw new ClassCastException("Failed casting");

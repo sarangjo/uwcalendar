@@ -50,8 +50,6 @@ public class SaveToGoogleActivity extends AppCompatActivity
     private NetworkOps net;
     private GoogleAuth goog;
 
-    private Button mSaveToGoogleButton;
-
     ProgressDialog mProgress;
     Quarter mQuarter;
     private String mQuarterName;
@@ -59,16 +57,6 @@ public class SaveToGoogleActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        mSaveToGoogleButton = (Button) findViewById(R.id.save_to_google_btn);
-        mSaveToGoogleButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mSaveToGoogleButton.setEnabled(false);
-                getResultsFromApi();
-                mSaveToGoogleButton.setEnabled(true);
-            }
-        });
 
         mProgress = new ProgressDialog(this);
         mProgress.setMessage("Calling Google Calendar API ...");
@@ -83,6 +71,9 @@ public class SaveToGoogleActivity extends AppCompatActivity
         // Retrieve selected quarter from the intent
         mQuarter = Quarter.valueOf(getIntent().getExtras());
         mQuarterName = getIntent().getStringExtra(QUARTER_NAME_KEY);
+
+        // Get going
+        getResultsFromApi();
     }
 
     /**
@@ -117,15 +108,15 @@ public class SaveToGoogleActivity extends AppCompatActivity
     @AfterPermissionGranted(GoogleAuth.REQUEST_PERMISSION_GET_ACCOUNTS)
     private void chooseAccount() {
         if (EasyPermissions.hasPermissions(this, Manifest.permission.GET_ACCOUNTS)) {
-            String accountName = getPreferences(Context.MODE_PRIVATE)
-                    .getString(GoogleAuth.ACCOUNT_NAME_KEY, null);
-            if (accountName != null) {
-                goog.setSelectedAccountName(accountName);
-                getResultsFromApi();
-            } else {
-                // Start a dialog from which the user can choose an account
-                startActivityForResult(goog.chooseAccount(), GoogleAuth.REQUEST_ACCOUNT_PICKER);
-            }
+//            String accountName = getPreferences(Context.MODE_PRIVATE)
+//                    .getString(GoogleAuth.ACCOUNT_NAME_KEY, null);
+//            if (accountName != null) {
+//                goog.setSelectedAccountName(accountName);
+//                getResultsFromApi();
+//            } else {
+            // Start a dialog from which the user can choose an account
+            startActivityForResult(goog.chooseAccount(), GoogleAuth.REQUEST_ACCOUNT_PICKER);
+//            }
         } else {
             // Request the GET_ACCOUNTS permission via a user dialog
             EasyPermissions.requestPermissions(this,
@@ -162,10 +153,10 @@ public class SaveToGoogleActivity extends AppCompatActivity
                     String accountName = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
                     if (accountName != null) {
                         // Save chosen account - TODO save to Firebase for this account?
-                        SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = settings.edit();
-                        editor.putString(GoogleAuth.ACCOUNT_NAME_KEY, accountName);
-                        editor.apply();
+//                        SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
+//                        SharedPreferences.Editor editor = settings.edit();
+//                        editor.putString(GoogleAuth.ACCOUNT_NAME_KEY, accountName);
+//                        editor.apply();
 
                         goog.setSelectedAccountName(accountName);
                         getResultsFromApi();
@@ -267,7 +258,10 @@ public class SaveToGoogleActivity extends AppCompatActivity
                     try {
                         event = mService.events().insert(calendarId, event).execute();
                     } catch (IOException e) {
-                        // TODO
+                        Log.e(TAG, "Unable to insert event.", e);
+                        mLastError = e;
+                        cancel(true);
+                        return;
                     }
 
                     Log.d("Event created:", event.getId());
@@ -276,7 +270,10 @@ public class SaveToGoogleActivity extends AppCompatActivity
                     try {
                         mService.events().update(calendarId, geId, event);
                     } catch (IOException e) {
-                        // TODO
+                        Log.e(TAG, "Unable to update event.", e);
+                        mLastError = e;
+                        cancel(true);
+                        return;
                     }
 
                     Log.d("Event updated:", event.getId());
@@ -295,6 +292,8 @@ public class SaveToGoogleActivity extends AppCompatActivity
         protected void onPostExecute(Boolean output) {
             mProgress.hide();
             Toast.makeText(SaveToGoogleActivity.this, "Saved classes to Google", Toast.LENGTH_LONG).show();
+
+            finish();
         }
 
         @Override

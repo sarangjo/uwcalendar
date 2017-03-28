@@ -17,13 +17,14 @@ public class ScheduleData {
         return ourInstance;
     }
 
-    // TODO get this from an onlnie API somehow
+    // TODO get this from an online API somehow
     private ScheduleData() {
-        quarterCodes = new String[]{"wi16", "sp16", "au16"};
+        quarterCodes = new String[]{"wi16", "sp16", "au16", "sp17"};
         quarterInfo = new HashMap<>();
         quarterInfo.put(quarterCodes[0], new String[]{"2016-01-04", "2016-03-12"});
         quarterInfo.put(quarterCodes[1], new String[]{"2016-03-28", "2016-06-04"});
         quarterInfo.put(quarterCodes[2], new String[]{"2016-09-28", "2016-12-09"});
+        quarterInfo.put(quarterCodes[3], new String[]{"2017-03-27", "2016-06-02"});
     }
 
     private String[] quarterCodes;

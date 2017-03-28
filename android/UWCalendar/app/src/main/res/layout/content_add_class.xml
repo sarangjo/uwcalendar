@@ -23,9 +23,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/prompt_name"
-            android:maxLines="1"
-            android:singleLine="true"
-            android:text="Sidd Time 0" />
+            android:maxLines="1" />
 
     </android.support.design.widget.TextInputLayout>
 
@@ -38,9 +36,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/prompt_location"
-            android:maxLines="1"
-            android:singleLine="true"
-            android:text="CSE 069" />
+            android:maxLines="1" />
 
     </android.support.design.widget.TextInputLayout>
 

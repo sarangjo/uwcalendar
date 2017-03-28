@@ -29,6 +29,8 @@ public class ScheduleActivity extends AppCompatActivity implements NetworkOps.Sc
     private Schedule mSchedule;
     private String mQuarter;
 
+    // TODO: progress dialog until schedule loads
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

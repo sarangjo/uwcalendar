@@ -1,8 +1,10 @@
 package com.sarangjoshi.uwcalendar.activities;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Dialog;
 import android.app.TimePickerDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -19,19 +21,23 @@ import android.widget.ListView;
 import android.widget.TimePicker;
 
 import com.sarangjoshi.uwcalendar.R;
+import com.sarangjoshi.uwcalendar.SetTimeListener;
 import com.sarangjoshi.uwcalendar.singletons.ScheduleData;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
-public class AddClassActivity extends AppCompatActivity {
+public class AddClassActivity extends AppCompatActivity implements SetTimeListener {
     public static final String NAME_KEY = "name";
     public static final String LOCATION_KEY = "location";
     public static final String DAYS_KEY = "days";
     public static final String START_KEY = "start";
     public static final String END_KEY = "end";
     public static final String QUARTER_KEY = "quarter";
+
+    private static final String IS_START_KEY = "isStart";
+    private static final String TIMES_KEY = "times";
 
     private String mQuarter;
 
@@ -70,10 +76,7 @@ public class AddClassActivity extends AppCompatActivity {
     }
 
     public void showTimePickerDialog(View v) {
-        DialogFragment newFragment = new TimePickerFragment(v.getId() == R.id.start_time_picker);
-        /*Bundle args = new Bundle();
-        args.putBoolean(TimePickerFragment.START_KEY, v.getId() == R.id.start_time_picker);
-        newFragment.setArguments(new Bundle());*/
+        DialogFragment newFragment = TimePickerFragment.newInstance(v.getId() == R.id.start_time_picker, mTimes);
         newFragment.show(getSupportFragmentManager(), "timePicker");
     }
 
@@ -86,67 +89,6 @@ public class AddClassActivity extends AppCompatActivity {
             }
         }
         return days;
-    }
-
-    @SuppressLint("ValidFragment")
-    private class TimePickerFragment extends DialogFragment
-            implements TimePickerDialog.OnTimeSetListener {
-        private boolean isStart;
-
-        public TimePickerFragment(boolean isStart) {
-            this.isStart = isStart;
-        }
-
-        @NonNull
-        @Override
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
-            int i = isStart ? 0 : 1;
-            int hour, minute;
-
-            if (mTimes[i].isEmpty()) {
-                // Use the current time as the default values for the picker
-                Calendar c = Calendar.getInstance();
-                hour = c.get(Calendar.HOUR_OF_DAY);
-                minute = c.get(Calendar.MINUTE);
-            } else {
-                hour = Integer.parseInt(mTimes[i].substring(0, 2));
-                minute = Integer.parseInt(mTimes[i].substring(3));
-            }
-
-            // Create a new instance of TimePickerDialog and return it
-            return new TimePickerDialog(getActivity(), this, hour, minute,
-                    DateFormat.is24HourFormat(getActivity()));
-        }
-
-        public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-            // TODO: limit start times? earliest // latest
-            String time = String.format("%02d:%02d", hourOfDay, minute);
-            if (isStart) {
-                mTimes[0] = time;
-                mStartTimePicker.setText(mTimes[0]);
-
-                mTimes[1] = getEndTime(hourOfDay, minute);
-                mEndTimePicker.setText(mTimes[1]);
-            } else {
-                mTimes[1] = time;
-                mEndTimePicker.setText(mTimes[1]);
-            }
-            dismiss();
-        }
-
-        /**
-         * Gets the end time given start hour and minute.
-         */
-        private String getEndTime(int startHourOfDay, int startMinute) {
-            startMinute -= 10;
-            if (startMinute >= 0) {
-                startHourOfDay += 1;
-            } else {
-                startMinute += 60;
-            }
-            return String.format("%02d:%02d", startHourOfDay, startMinute);
-        }
-
     }
 
     public void addClass(View view) {
@@ -213,4 +155,88 @@ public class AddClassActivity extends AppCompatActivity {
         return starthr <= endhr && (starthr < endhr || (Integer.parseInt(mTimes[0].substring(3))) < (Integer.parseInt(mTimes[1].substring(3))));
     }
 
+    public static class TimePickerFragment extends DialogFragment
+            implements TimePickerDialog.OnTimeSetListener {
+        private boolean isStart;
+        private String[] mTimes;
+        private SetTimeListener mListener;
+
+        public TimePickerFragment() {
+        }
+
+        public static TimePickerFragment newInstance(boolean isStart, String[] times) {
+            TimePickerFragment frag = new TimePickerFragment();
+            Bundle b = new Bundle();
+            b.putBoolean(IS_START_KEY, isStart);
+            b.putStringArray(TIMES_KEY, times);
+            frag.setArguments(b);
+            return frag;
+        }
+
+        @Override
+        public void onAttach(Context context) {
+            super.onAttach(context);
+            mListener = (SetTimeListener) context;
+        }
+
+        @NonNull
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            // Get arguments from bundle
+            Bundle args = getArguments();
+            isStart = args.getBoolean(IS_START_KEY);
+            mTimes = args.getStringArray(TIMES_KEY);
+
+            int i = isStart ? 0 : 1;
+            int hour, minute;
+
+            if (mTimes[i].isEmpty()) {
+                // Use the current time as the default values for the picker
+                Calendar c = Calendar.getInstance();
+                hour = c.get(Calendar.HOUR_OF_DAY);
+                minute = c.get(Calendar.MINUTE);
+            } else {
+                hour = Integer.parseInt(mTimes[i].substring(0, 2));
+                minute = Integer.parseInt(mTimes[i].substring(3));
+            }
+
+            // Create a new instance of TimePickerDialog and return it
+            return new TimePickerDialog(getActivity(), this, hour, minute,
+                    DateFormat.is24HourFormat(getActivity()));
+        }
+
+        @Override
+        public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+            mListener.onTimeSet(isStart, hourOfDay, minute);
+            dismiss();
+        }
+    }
+
+    public void onTimeSet(boolean isStart, int hourOfDay, int minute) {
+        // TODO: limit start times? earliest // latest
+        String time = String.format("%02d:%02d", hourOfDay, minute);
+        if (isStart) {
+            mTimes[0] = time;
+            mStartTimePicker.setText(mTimes[0]);
+
+            mTimes[1] = getEndTime(hourOfDay, minute);
+            mEndTimePicker.setText(mTimes[1]);
+        } else {
+            mTimes[1] = time;
+            mEndTimePicker.setText(mTimes[1]);
+        }
+    }
+
+    /**
+     * Gets the end time given start hour and minute.
+     */
+    private String getEndTime(int startHourOfDay, int startMinute) {
+        startMinute -= 10;
+        if (startMinute >= 0) {
+            startHourOfDay += 1;
+        } else {
+            startMinute += 60;
+        }
+        return String.format("%02d:%02d", startHourOfDay, startMinute);
+    }
 }

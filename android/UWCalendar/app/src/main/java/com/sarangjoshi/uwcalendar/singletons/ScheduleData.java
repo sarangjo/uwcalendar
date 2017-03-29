@@ -11,6 +11,7 @@ import java.util.Map;
  * @author Sarang Joshi
  */
 public class ScheduleData {
+    public static final String CLASS_ID_KEY = "classId";
     private static ScheduleData ourInstance = new ScheduleData();
 
     public static ScheduleData getInstance() {

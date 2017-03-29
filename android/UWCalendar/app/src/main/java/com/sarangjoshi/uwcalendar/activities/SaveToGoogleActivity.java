@@ -3,19 +3,12 @@ package com.sarangjoshi.uwcalendar.activities;
 import android.Manifest;
 import android.accounts.AccountManager;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -25,34 +18,33 @@ import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecovera
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.api.client.util.DateTime;
 import com.google.api.services.calendar.model.Event;
-import com.google.api.services.calendar.model.Events;
 import com.sarangjoshi.uwcalendar.R;
 import com.sarangjoshi.uwcalendar.content.Quarter;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
+import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 import com.sarangjoshi.uwcalendar.singletons.GoogleAuth;
 import com.sarangjoshi.uwcalendar.singletons.NetworkOps;
-import com.sarangjoshi.uwcalendar.singletons.ScheduleData;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
-import static com.sarangjoshi.uwcalendar.content.Quarter.QUARTER_NAME_KEY;
+import static com.sarangjoshi.uwcalendar.content.Quarter.QUARTER_ID_KEY;
 
 public class SaveToGoogleActivity extends AppCompatActivity
         implements EasyPermissions.PermissionCallbacks {
+    public static final String GOOGLE_EVENT_ID_KEY = "googleEventId";
     private static final String TAG = "SaveToGoogleActivity";
     private NetworkOps net;
     private GoogleAuth goog;
+    private FirebaseData fb;
 
     ProgressDialog mProgress;
     Quarter mQuarter;
-    private String mQuarterName;
+    private String mQuarterId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,10 +59,11 @@ public class SaveToGoogleActivity extends AppCompatActivity
         goog.initializeCredential(this);
 
         net = NetworkOps.getInstance();
+        fb = FirebaseData.getInstance();
 
         // Retrieve selected quarter from the intent
         mQuarter = Quarter.valueOf(getIntent().getExtras());
-        mQuarterName = getIntent().getStringExtra(QUARTER_NAME_KEY);
+        mQuarterId = getIntent().getStringExtra(QUARTER_ID_KEY);
 
         // Get going
         getResultsFromApi();
@@ -247,13 +240,14 @@ public class SaveToGoogleActivity extends AppCompatActivity
 
         private void saveSchedule() {
             for (SingleClass c : mQuarter.getClasses()) {
-                Event event = SingleClass.createGoogleEvent(mQuarterName, c);
+                // First check to see if this event id already exists, in the case of double-saving
+                String geId = c.getGoogleEventId();
+
+                Event event = c.createGoogleEvent(mQuarterId);
 
                 // TODO: add support for multiple calendar id's
                 String calendarId = "primary";
 
-                // First check to see if this event id already exists, in the case of double-saving
-                String geId = c.getGoogleEventId();
                 if (geId == null) {
                     try {
                         event = mService.events().insert(calendarId, event).execute();
@@ -266,6 +260,9 @@ public class SaveToGoogleActivity extends AppCompatActivity
 
                     Log.d("Event created:", event.getId());
                     c.setGoogleEventId(event.getId());
+
+                    // Save google event id on firebase
+                    fb.saveGoogleEventId(mQuarterId, c);
                 } else {
                     try {
                         mService.events().update(calendarId, geId, event);

@@ -5,7 +5,6 @@ import android.os.Bundle;
 import com.google.firebase.database.DataSnapshot;
 import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -19,31 +18,22 @@ import static com.sarangjoshi.uwcalendar.singletons.FirebaseData.CLASSES_KEY;
  */
 public class Quarter {
     private static final String USER_ID_KEY = "userId";
-    public static final String QUARTER_NAME_KEY = "quarterName";
-    private static final String CLASS_IDS_KEY = "classIds";
+    public static final String QUARTER_ID_KEY = "quarterId";
 
     private ArrayList<SingleClass> mClassList;
-    private ArrayList<String> mClassIds;
-    private String mName;
+    private String mId;
     private String mUserId;
 
-    private FirebaseData fb;
-
-    public Quarter(String userId, String quarterName) {
-        this.mName = quarterName;
+    public Quarter(String userId, String quarterId) {
+        this.mId = quarterId;
         this.mUserId = userId;
         this.mClassList = new ArrayList<>();
-        this.mClassIds = new ArrayList<>();
-
-        fb = FirebaseData.getInstance();
     }
 
-    /**
-     * Add a new class to this quarter, given its Firebase ID.
-     */
-    private void addClass(SingleClass c, String id) {
-        this.mClassList.add(c);
-        this.mClassIds.add(id);
+    public Quarter(String userId, String quarterId, List<SingleClass> classes) {
+        this(userId, quarterId);
+
+        mClassList.addAll(classes);
     }
 
     /**
@@ -54,43 +44,32 @@ public class Quarter {
     }
 
     /**
-     * Save a new class to this quarter.
-     */
-    public void saveClass(SingleClass singleClass) throws IOException {
-        // Firebase
-        fb.addClass(mName, singleClass);
-    }
-
-    /**
      * Remove a class from this quarter.
      */
-    public void removeClass(int position) throws IOException {
-        SingleClass singleClass = mClassList.get(position);
-
-        // First the Google event
-        /*    String id = singleClass.getGoogleEventId();
-            goog.getService().events().delete("primary", id).execute();
-
-            Log.d("Event removed:", id);
-        */
-
-        // Then the Database event
-        fb.removeClass(mName, mClassIds.get(position));
-
-        // Delete locally (TODO: needed?)
-        this.mClassList.remove(position);
-        this.mClassIds.remove(position);
-    }
+//    public void removeClass(int position) throws IOException {
+//        // First the Google event
+//        /*    String id = singleClass.getGoogleEventId();
+//            goog.getService().events().delete("primary", id).execute();
+//
+//            Log.d("Event removed:", id);
+//        */
+//
+//        // Then the Database event
+//        fb.removeClass(mId, mClassList.get(position).getId());
+//
+//        // Delete locally (TODO: needed?)
+//        this.mClassList.remove(position);
+//    }
 
     /**
      * Given a DataSnapshot of the quarter, returns a representation of that quarter's schedule.
      */
     static Quarter valueOf(String id, DataSnapshot snapshot) {
-        Quarter q = new Quarter(id, snapshot.getKey());
+        List<SingleClass> classes = new ArrayList<>();
         for (DataSnapshot singleClass : snapshot.getChildren()) {
-            q.addClass(singleClass.getValue(SingleClass.class), singleClass.getKey());
+            classes.add(SingleClass.valueOf(singleClass));
         }
-        return q;
+        return new Quarter(id, snapshot.getKey(), classes);
     }
 
     public Bundle toBundle() {
@@ -100,19 +79,22 @@ public class Quarter {
             classStrings.add(c.serialize());
         }
         bundle.putString(USER_ID_KEY, mUserId);
-        bundle.putString(QUARTER_NAME_KEY, mName);
+        bundle.putString(QUARTER_ID_KEY, mId);
         bundle.putStringArrayList(CLASSES_KEY, classStrings);
-        bundle.putStringArrayList(CLASS_IDS_KEY, mClassIds);
         return bundle;
     }
 
-    public static Quarter valueOf(Bundle bundle) {
-        Quarter q = new Quarter(bundle.getString(USER_ID_KEY), bundle.getString(QUARTER_NAME_KEY));
+    public static Quarter valueOf(Bundle bundle) throws RuntimeException {
         List<String> classStrings = bundle.getStringArrayList(CLASSES_KEY);
-        List<String> classIds = bundle.getStringArrayList(CLASS_IDS_KEY);
+        if (classStrings == null) throw new RuntimeException("Malformed bundle for quarter.");
+        List<SingleClass> classes = new ArrayList<>();
         for (int i = 0; i < classStrings.size(); i++) {
-            q.addClass(SingleClass.deserialize(classStrings.get(i)), classIds.get(i));
+            classes.add(SingleClass.deserialize(classStrings.get(i)));
         }
-        return q;
+        return new Quarter(bundle.getString(USER_ID_KEY), bundle.getString(QUARTER_ID_KEY), classes);
+    }
+
+    public String getClassId(int position) {
+        return this.mClassList.get(position).getId();
     }
 }

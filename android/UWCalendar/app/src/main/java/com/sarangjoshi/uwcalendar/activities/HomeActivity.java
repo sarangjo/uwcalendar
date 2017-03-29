@@ -34,6 +34,7 @@ import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 import com.sarangjoshi.uwcalendar.fragments.ChangePasswordFragment;
 import com.sarangjoshi.uwcalendar.fragments.RequestScheduleFragment;
 import com.sarangjoshi.uwcalendar.singletons.NetworkOps;
+import com.sarangjoshi.uwcalendar.singletons.ScheduleData;
 
 import java.util.Iterator;
 import java.util.List;
@@ -131,7 +132,7 @@ public class HomeActivity extends AppCompatActivity
                 // Open connection page
                 Intent intent = new Intent(HomeActivity.this, ConnectionActivity.class);
                 intent.putExtra(FirebaseData.CONNECTION_ID_KEY, mUser.getConnection(position).id);
-                intent.putExtra(AddClassActivity.QUARTER_KEY, "sp16"); // ScheduleData.getInstance().getCurrentQuarter()); // TODO replace
+                intent.putExtra(FirebaseData.QUARTER_ID_KEY, ScheduleData.getInstance().getCurrentQuarter()); // TODO replace
                 startActivity(intent);
             }
         });

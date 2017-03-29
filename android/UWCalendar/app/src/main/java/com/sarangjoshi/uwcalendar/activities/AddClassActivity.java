@@ -34,12 +34,9 @@ public class AddClassActivity extends AppCompatActivity implements SetTimeListen
     public static final String DAYS_KEY = "days";
     public static final String START_KEY = "start";
     public static final String END_KEY = "end";
-    public static final String QUARTER_KEY = "quarter";
 
     private static final String IS_START_KEY = "isStart";
     private static final String TIMES_KEY = "times";
-
-    private String mQuarter;
 
     private Button mStartTimePicker, mEndTimePicker;
     private EditText mClassName, mClassLocation;
@@ -71,8 +68,6 @@ public class AddClassActivity extends AppCompatActivity implements SetTimeListen
         mCheckboxes[2] = (CheckBox) findViewById(R.id.wednesdayCheckBox);
         mCheckboxes[3] = (CheckBox) findViewById(R.id.thursdayCheckBox);
         mCheckboxes[4] = (CheckBox) findViewById(R.id.fridayCheckBox);
-
-        mQuarter = getIntent().getStringExtra(QUARTER_KEY);
     }
 
     public void showTimePickerDialog(View v) {
@@ -106,8 +101,6 @@ public class AddClassActivity extends AppCompatActivity implements SetTimeListen
             data.putExtra(DAYS_KEY, getDays());
             data.putExtra(START_KEY, mTimes[0]);
             data.putExtra(END_KEY, mTimes[1]);
-
-            data.putExtra(QUARTER_KEY, mQuarter);
 
             setResult(RESULT_OK, data);
 

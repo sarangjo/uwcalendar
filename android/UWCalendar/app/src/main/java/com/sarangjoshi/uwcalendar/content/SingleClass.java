@@ -6,10 +6,11 @@ import android.text.TextUtils;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventDateTime;
+import com.google.firebase.database.DataSnapshot;
 import com.sarangjoshi.uwcalendar.activities.AddClassActivity;
+import com.sarangjoshi.uwcalendar.activities.SaveToGoogleActivity;
 import com.sarangjoshi.uwcalendar.singletons.ScheduleData;
 
-import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -31,6 +32,8 @@ public class SingleClass {
     private int days;
     private String start;
     private String end;
+
+    private String id;
 
     private String googleEventId;
 
@@ -95,33 +98,18 @@ public class SingleClass {
     }
 
     /**
-     * Initializes a new SingleClass from the given Intent.
-     *
-     * @param data
-     * @return
-     */
-    public static SingleClass valueOf(Intent data) {
-        return new SingleClass(
-                data.getStringExtra(AddClassActivity.NAME_KEY),
-                data.getStringExtra(AddClassActivity.LOCATION_KEY),
-                data.getIntExtra(AddClassActivity.DAYS_KEY, 0),
-                data.getStringExtra(AddClassActivity.START_KEY),
-                data.getStringExtra(AddClassActivity.END_KEY)
-        );
-    }
-
-    /**
      * Manufacture a Google event from the given class details.
      */
-    public static Event createGoogleEvent(String quarter, SingleClass singleClass) {
-        Event event = new Event().setSummary(singleClass.getName())
-                .setLocation(singleClass.getLocation());
+    public Event createGoogleEvent(String quarter) {
+        Event event = new Event().setSummary(getName())
+                .setLocation(getLocation())
+                .setId(getGoogleEventId());
 
         String[] qtrDetails = ScheduleData.getInstance().getQuarterInfo(quarter);
 
         // RECURRENCE DETAILS
         int[] offset = new int[1];
-        String days = singleClass.getDaysString(offset);
+        String days = getDaysString(offset);
         String endDate = (qtrDetails[1]).replaceAll("-", "");
         String[] recurrence = new String[]{"RRULE:FREQ=WEEKLY;UNTIL=" + endDate + "T115959Z;WKST=SU;BYDAY=" + days};
         event.setRecurrence(Arrays.asList(recurrence));
@@ -137,12 +125,13 @@ public class SingleClass {
         }
         c.add(Calendar.DATE, offset[0]);
 
-        String startString = sdf.format(c.getTime()) + "T" + singleClass.getStart() + ":00-07:00";
+        // TODO: what to do for timezone
+        String startString = sdf.format(c.getTime()) + "T" + getStart() + ":00-07:00";
         DateTime startDateTime = new DateTime(startString);
         EventDateTime start = new EventDateTime().setDateTime(startDateTime).setTimeZone("America/Los_Angeles");
         event.setStart(start);
 
-        String endString = startString.substring(0, 11) + singleClass.getEnd() + startString.substring(16);
+        String endString = startString.substring(0, 11) + getEnd() + startString.substring(16);
         DateTime endDateTime = new DateTime(endString);
         EventDateTime end = new EventDateTime().setDateTime(endDateTime).setTimeZone("America/Los_Angeles");
         event.setEnd(end);
@@ -173,12 +162,51 @@ public class SingleClass {
     }
 
     String serialize() {
-        String[] arr = {name, location, "" + days, start, end};
+        String[] arr = {name, location, "" + days, start, end, id, googleEventId};
         return TextUtils.join(";;", arr);
     }
 
     static SingleClass deserialize(String s) {
         String[] arr = s.split(";;");
-        return new SingleClass(arr[0], arr[1], Integer.parseInt(arr[2]), arr[3], arr[4]);
+        SingleClass c = new SingleClass(arr[0], arr[1], Integer.parseInt(arr[2]), arr[3], arr[4]);
+        c.setId(arr[5].equals("null") ? null : arr[5]);
+        c.setGoogleEventId(arr[6].equals("null") ? null : arr[6]);
+        return c;
+    }
+
+    public String getId() {
+        return this.id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    /**
+     * Initializes a new SingleClass from the given Intent.
+     */
+    public static SingleClass valueOf(Intent data) {
+        SingleClass c = new SingleClass(
+                data.getStringExtra(AddClassActivity.NAME_KEY),
+                data.getStringExtra(AddClassActivity.LOCATION_KEY),
+                data.getIntExtra(AddClassActivity.DAYS_KEY, 0),
+                data.getStringExtra(AddClassActivity.START_KEY),
+                data.getStringExtra(AddClassActivity.END_KEY)
+        );
+        c.setId(data.getStringExtra(ScheduleData.CLASS_ID_KEY));
+        c.setGoogleEventId(data.getStringExtra(SaveToGoogleActivity.GOOGLE_EVENT_ID_KEY));
+        return c;
+    }
+
+    /**
+     * Initializes a new SingleClass from the given DataSnapshot.
+     */
+    public static SingleClass valueOf(DataSnapshot snapshot) {
+        SingleClass c = snapshot.getValue(SingleClass.class);
+
+        // Set firebase ID on download
+        c.setId(snapshot.getKey());
+
+        return c;
     }
 }

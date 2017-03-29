@@ -44,7 +44,7 @@ public class ConnectionActivity extends AppCompatActivity implements NetworkOps.
         assert actionBar != null;
         actionBar.setDisplayHomeAsUpEnabled(true);
 
-        mQuarter = getIntent().getStringExtra(AddClassActivity.QUARTER_KEY);
+        mQuarter = getIntent().getStringExtra(FirebaseData.QUARTER_ID_KEY);
 
         // TODO; choose quarter via spinner
 

@@ -40,6 +40,8 @@ import com.sarangjoshi.uwcalendar.fragments.SetUsernameFragment;
 public class LoginActivity extends AppCompatActivity implements SetUsernameFragment.SetUsernameListener, GoogleApiClient.OnConnectionFailedListener {
     private static final String TAG = "LoginActivity";
 
+    private static final boolean DEBUG = false;
+
     // UI
     private AutoCompleteTextView mEmailView;
     private EditText mPasswordView;
@@ -56,7 +58,6 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
 
     // Google
     private static final int RC_SIGN_IN = 1000;
-    private GoogleApiClient mGoogleApiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,6 +103,45 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
             }
         };
 
+        // Debug logins
+        if (DEBUG) {
+            Button sarang = (Button) findViewById(R.id.sarangLogin);
+            sarang.setVisibility(View.VISIBLE);
+            sarang.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mEmail = "sarangj@msn.com";
+                    mPass = getResources().getString(R.string.default_password);
+
+                    attemptLogin();
+                }
+            });
+
+            Button kavya = (Button) findViewById(R.id.kavyaLogin);
+            kavya.setVisibility(View.VISIBLE);
+            kavya.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mEmail = "kavyam2@uw.edu";
+                    mPass = getResources().getString(R.string.default_password);
+
+                    attemptLogin();
+                }
+            });
+
+            Button lol = (Button) findViewById(R.id.lolLogin);
+            lol.setVisibility(View.VISIBLE);
+            lol.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mEmail = getResources().getString(R.string.default_email);
+                    mPass = getResources().getString(R.string.default_password);
+
+                    attemptLogin();
+                }
+            });
+        }
+
         // Google auth
         //setupGoogleSignInAuth();
     }
@@ -115,12 +155,7 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
                 .requestEmail()
                 .build();
 
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .enableAutoManage(this, this)
-                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
-                .build();
-
-//        View v = findViewById(R.id.connect_to_google_btn);
+        //        View v = findViewById(R.id.connect_to_google_btn);
 //        if (v != null)
 //            v.setOnClickListener(new View.OnClickListener() {
 //                @Override
@@ -143,22 +178,6 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
         if (mAuthListener != null) {
             mAuth.removeAuthStateListener(mAuthListener);
         }
-    }
-
-    // TODO: 7/17/16 Remove both of these after done debugging
-
-    public void sarangLogin(View view) {
-        mEmail = "sarangj@msn.com";
-        mPass = getResources().getString(R.string.default_password);
-
-        attemptLogin();
-    }
-
-    public void kavyaLogin(View view) {
-        mEmail = "kavyam2@uw.edu";
-        mPass = getResources().getString(R.string.default_password);
-
-        attemptLogin();
     }
 
     /**
@@ -289,32 +308,25 @@ public class LoginActivity extends AppCompatActivity implements SetUsernameFragm
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
         // for very easy animations. If available, use these APIs to fade-in
         // the progress spinner.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
-            int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
+        int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
 
-            mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-            mLoginFormView.animate().setDuration(shortAnimTime).alpha(
-                    show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-                }
-            });
+        mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
+        mLoginFormView.animate().setDuration(shortAnimTime).alpha(
+                show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
+            }
+        });
 
-            mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-            mProgressView.animate().setDuration(shortAnimTime).alpha(
-                    show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-                }
-            });
-        } else {
-            // The ViewPropertyAnimator APIs are not available, so simply show
-            // and hide the relevant UI components.
-            mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-            mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-        }
+        mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
+        mProgressView.animate().setDuration(shortAnimTime).alpha(
+                show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
+            }
+        });
     }
 
     //// GOOGLE AUTH ////

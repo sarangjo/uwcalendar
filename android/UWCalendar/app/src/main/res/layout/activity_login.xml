@@ -40,9 +40,7 @@
                     android:layout_height="wrap_content"
                     android:hint="@string/prompt_email"
                     android:inputType="textEmailAddress"
-                    android:maxLines="1"
-                    android:text="@string/default_email"
-                    android:singleLine="true" />
+                    android:maxLines="1" />
 
             </android.support.design.widget.TextInputLayout>
 
@@ -54,14 +52,12 @@
                     android:id="@+id/password"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/default_password"
                     android:hint="@string/prompt_password"
                     android:imeActionId="@+id/login"
                     android:imeActionLabel="@string/common_signin_button_text"
                     android:imeOptions="actionUnspecified"
                     android:inputType="textPassword"
-                    android:maxLines="1"
-                    android:singleLine="true" />
+                    android:maxLines="1" />
 
             </android.support.design.widget.TextInputLayout>
 
@@ -90,18 +86,25 @@
             </LinearLayout>
 
             <Button
+                android:id="@+id/lolLogin"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/default_email"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/sarangLogin"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/sarang"
-                android:onClick="sarangLogin"
-                />
+                android:visibility="gone" />
 
             <Button
+                android:id="@+id/kavyaLogin"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/kavya"
-                android:onClick="kavyaLogin"
-                />
+                android:visibility="gone" />
 
         </LinearLayout>
     </ScrollView>

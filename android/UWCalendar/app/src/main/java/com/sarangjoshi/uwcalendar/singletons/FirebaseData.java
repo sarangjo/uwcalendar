@@ -10,7 +10,7 @@ import com.sarangjoshi.uwcalendar.content.SingleClass;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.sarangjoshi.uwcalendar.activities.SaveToGoogleActivity.GOOGLE_EVENT_ID_KEY;
+import static com.sarangjoshi.uwcalendar.activities.SyncWithGoogleActivity.GOOGLE_EVENT_ID_KEY;
 
 /**
  * TODO: add class comment

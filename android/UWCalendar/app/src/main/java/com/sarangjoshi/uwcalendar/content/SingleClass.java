@@ -8,7 +8,7 @@ import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventDateTime;
 import com.google.firebase.database.DataSnapshot;
 import com.sarangjoshi.uwcalendar.activities.AddClassActivity;
-import com.sarangjoshi.uwcalendar.activities.SaveToGoogleActivity;
+import com.sarangjoshi.uwcalendar.activities.SyncWithGoogleActivity;
 import com.sarangjoshi.uwcalendar.singletons.ScheduleData;
 
 import java.text.ParseException;
@@ -194,7 +194,7 @@ public class SingleClass {
                 data.getStringExtra(AddClassActivity.END_KEY)
         );
         c.setId(data.getStringExtra(ScheduleData.CLASS_ID_KEY));
-        c.setGoogleEventId(data.getStringExtra(SaveToGoogleActivity.GOOGLE_EVENT_ID_KEY));
+        c.setGoogleEventId(data.getStringExtra(SyncWithGoogleActivity.GOOGLE_EVENT_ID_KEY));
         return c;
     }
 

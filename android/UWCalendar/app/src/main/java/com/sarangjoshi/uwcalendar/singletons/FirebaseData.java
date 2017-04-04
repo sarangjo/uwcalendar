@@ -10,6 +10,8 @@ import com.sarangjoshi.uwcalendar.content.SingleClass;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.sarangjoshi.uwcalendar.activities.SaveToGoogleActivity.GOOGLE_EVENT_ID_KEY;
+
 /**
  * TODO: add class comment
  *
@@ -33,6 +35,7 @@ public class FirebaseData {
     public static final String END_KEY = "end";
     public static final String CLASSES_KEY = "classes";
     public static final String TIME_KEY = "time";
+    public static final String QUARTER_ID_KEY = "quarterId";
 
     private static FirebaseData ourInstance = new FirebaseData();
 
@@ -82,6 +85,7 @@ public class FirebaseData {
     private FirebaseAuth mAuth;
     private FirebaseUser mCurrentUser;
     private DatabaseReference mCurrentUserRef;
+    private DatabaseReference mCurrentScheduleRef;
 
     private ValueEventListener mScheduleListener;
     private ValueEventListener mRequestsListener;
@@ -124,14 +128,20 @@ public class FirebaseData {
      * @param singleClass the class to add
      */
     public void addClass(String quarter, SingleClass singleClass) {
-        getSchedulesRef().child(getUid()).child(quarter).push().setValue(singleClass);
+        DatabaseReference s = mCurrentScheduleRef.child(quarter).push();
+        s.setValue(singleClass);
+        singleClass.setId(s.getKey());
+    }
+
+    public void saveGoogleEventId(String quarterId, SingleClass c) {
+        mCurrentScheduleRef.child(quarterId).child(c.getId()).child(GOOGLE_EVENT_ID_KEY).setValue(c.getGoogleEventId());
     }
 
     /**
      * Remove a class from the Firebase.
      */
     public void removeClass(String quarterId, String classId) {
-        getSchedulesRef().child(getUid() + "/" + quarterId + "/" + classId).removeValue();
+        getSchedulesRef().child(quarterId).child(classId).removeValue();
     }
 
     /**
@@ -140,6 +150,7 @@ public class FirebaseData {
     public void updateCurrentUser() {
         this.mCurrentUser = mAuth.getCurrentUser();
         this.mCurrentUserRef = getUsersRef().child(getUid());
+        this.mCurrentScheduleRef = getSchedulesRef().child(getUid());
     }
 
     //// FIREBASE LISTENERS

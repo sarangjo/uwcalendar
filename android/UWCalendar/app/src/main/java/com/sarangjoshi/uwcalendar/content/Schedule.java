@@ -25,13 +25,6 @@ public class Schedule {
     }
 
     /**
-     * Saves a new class to this schedule.
-     */
-    public void saveClass(String qtr, SingleClass singleClass) throws IOException {
-        mQuarters.get(qtr).saveClass(singleClass);
-    }
-
-    /**
      * Returns an unmodifiable list of this schedule's classes, if the given quarter has a defined schedule.
      */
     public List<SingleClass> getClasses(String qtr) {
@@ -46,18 +39,6 @@ public class Schedule {
     }
 
     /**
-     * Deletes a class from the schedule.
-     *
-     * @param position the position in the classes list to delete
-     * @return true on success; false otherwise
-     * @throws IOException if the Google event could not be deleted successfully
-     */
-    public void deleteClass(String qtr, int position) throws IOException {
-        mQuarters.get(qtr).removeClass(position);
-    }
-
-
-    /**
      * Converts a DataSnapshot into a Schedule object.
      */
     public static Schedule valueOf(String id, DataSnapshot snapshot) {
@@ -66,5 +47,9 @@ public class Schedule {
             s.mQuarters.put(qtrSnapshot.getKey(), Quarter.valueOf(id, qtrSnapshot));
         }
         return s;
+    }
+
+    public String getClassId(String qtrId, int position) {
+        return getQuarter(qtrId).getClassId(position);
     }
 }

@@ -22,6 +22,7 @@ import com.google.api.services.calendar.model.Event;
 import com.sarangjoshi.uwcalendar.R;
 import com.sarangjoshi.uwcalendar.content.Quarter;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
+import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 import com.sarangjoshi.uwcalendar.singletons.GoogleAuth;
 import com.sarangjoshi.uwcalendar.singletons.NetworkOps;
 
@@ -31,17 +32,19 @@ import java.util.List;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
-import static com.sarangjoshi.uwcalendar.content.Quarter.QUARTER_NAME_KEY;
+import static com.sarangjoshi.uwcalendar.content.Quarter.QUARTER_ID_KEY;
 
 public class SyncWithGoogleActivity extends AppCompatActivity
         implements EasyPermissions.PermissionCallbacks {
     private static final String TAG = "SyncWithGoogleActivity";
+    public static final String GOOGLE_EVENT_ID_KEY = "googleEventId";
     private NetworkOps net;
     private GoogleAuth goog;
+    private FirebaseData fb;
 
     ProgressDialog mProgress;
     Quarter mQuarter;
-    private String mQuarterName;
+    private String mQuarterId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,10 +59,11 @@ public class SyncWithGoogleActivity extends AppCompatActivity
         goog.initializeCredential(this);
 
         net = NetworkOps.getInstance();
+        fb = FirebaseData.getInstance();
 
         // Retrieve selected quarter from the intent
         mQuarter = Quarter.valueOf(getIntent().getExtras());
-        mQuarterName = getIntent().getStringExtra(QUARTER_NAME_KEY);
+        mQuarterId = getIntent().getStringExtra(QUARTER_ID_KEY);
 
         // Get going
         getResultsFromApi();
@@ -236,13 +240,14 @@ public class SyncWithGoogleActivity extends AppCompatActivity
 
         private void saveSchedule() {
             for (SingleClass c : mQuarter.getClasses()) {
-                Event event = SingleClass.createGoogleEvent(mQuarterName, c);
+                // First check to see if this event id already exists, in the case of double-saving
+                String geId = c.getGoogleEventId();
+
+                Event event = c.createGoogleEvent(mQuarterId);
 
                 // TODO: add support for multiple calendar id's
                 String calendarId = "primary";
 
-                // First check to see if this event id already exists, in the case of double-saving
-                String geId = c.getGoogleEventId();
                 if (geId == null) {
                     try {
                         event = mService.events().insert(calendarId, event).execute();
@@ -255,6 +260,9 @@ public class SyncWithGoogleActivity extends AppCompatActivity
 
                     Log.d("Event created:", event.getId());
                     c.setGoogleEventId(event.getId());
+
+                    // Save google event id on firebase
+                    fb.saveGoogleEventId(mQuarterId, c);
                 } else {
                     try {
                         mService.events().update(calendarId, geId, event);

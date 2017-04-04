@@ -16,6 +16,7 @@ import android.widget.Toast;
 import com.sarangjoshi.uwcalendar.R;
 import com.sarangjoshi.uwcalendar.content.Schedule;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
+import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 import com.sarangjoshi.uwcalendar.singletons.ScheduleData;
 import com.sarangjoshi.uwcalendar.singletons.NetworkOps;
 
@@ -29,6 +30,7 @@ public class ScheduleActivity extends AppCompatActivity implements NetworkOps.Sc
     private Schedule mSchedule;
     private String mQuarter;
 
+    private FirebaseData fb;
     // TODO: progress dialog until schedule loads
 
     @Override
@@ -45,9 +47,7 @@ public class ScheduleActivity extends AppCompatActivity implements NetworkOps.Sc
             fab.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Intent intent = new Intent(ScheduleActivity.this, AddClassActivity.class);
-                    intent.putExtra(AddClassActivity.QUARTER_KEY, mQuarter);
-                    startActivityForResult(intent, ADD_CLASS_REQUEST);
+                    startActivityForResult(new Intent(ScheduleActivity.this, AddClassActivity.class), ADD_CLASS_REQUEST);
                 }
             });
         }
@@ -84,18 +84,14 @@ public class ScheduleActivity extends AppCompatActivity implements NetworkOps.Sc
         mClassesList = (ListView) findViewById(R.id.classes_list);
         mClassesList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+            public boolean onItemLongClick(AdapterView<?> parent, View view, final int position, long id) {
                 new NetworkOps.OperationTask<Integer>(ScheduleActivity.this, "Deleting...") {
                     @Override
                     protected Boolean doInBackground(Integer... params) {
-                        int position = params[0];
-                        try {
-                            mSchedule.deleteClass(mQuarter, position);
-                        } catch (IOException e) {
-                            Log.d("Calendar delete error", e.getMessage());
-                            cancel(true);
-                            return false;
-                        }
+                        // Get class ID from schedule
+                        String id = mSchedule.getClassId(mQuarter, position);
+                        fb.removeClass(mQuarter, id);
+
                         return true;
                     }
                 }.execute(position);
@@ -103,6 +99,7 @@ public class ScheduleActivity extends AppCompatActivity implements NetworkOps.Sc
             }
         });
 
+        fb = FirebaseData.getInstance();
     }
 
     public void onSaveToGoogleClicked(View view) {
@@ -121,24 +118,15 @@ public class ScheduleActivity extends AppCompatActivity implements NetworkOps.Sc
             case ADD_CLASS_REQUEST:
                 // Make sure the request was successful
                 if (resultCode == RESULT_OK) {
-                    // Save class to database and Google
+                    // Save class to database
                     SingleClass singleClass = SingleClass.valueOf(data);
-                    new NetworkOps.OperationTask<Object>(this, "Saving...") {
-                        protected Boolean doInBackground(Object... params) {
-                            SingleClass singleClass = (SingleClass) params[1];
-                            String quarter = params[0].toString();
-
-                            try {
-                                mSchedule.saveClass(quarter, singleClass);
-                            } catch (IOException e) {
-                                Log.d("Calendar save error", e.getMessage());
-                                cancel(true);
-                                return false;
-                            }
-
+                    new NetworkOps.OperationTask<SingleClass>(this, "Saving...") {
+                        protected Boolean doInBackground(SingleClass... params) {
+                            SingleClass singleClass = params[0];
+                            fb.addClass(mQuarter, singleClass);
                             return true;
                         }
-                    }.execute(data.getStringExtra(AddClassActivity.QUARTER_KEY), singleClass);
+                    }.execute(singleClass);
                 }
                 break;
         }

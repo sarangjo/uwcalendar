@@ -10,7 +10,7 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context="com.sarangjoshi.uwcalendar.activities.SaveToGoogleActivity"
-    tools:showIn="@layout/activity_save_to_google">
+    tools:context="com.sarangjoshi.uwcalendar.activities.SyncWithGoogleActivity"
+    tools:showIn="@layout/activity_sync_with_google">
 
 </LinearLayout>

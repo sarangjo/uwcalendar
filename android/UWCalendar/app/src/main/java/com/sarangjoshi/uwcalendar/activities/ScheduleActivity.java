@@ -107,7 +107,7 @@ public class ScheduleActivity extends AppCompatActivity implements NetworkOps.Sc
 
     public void onSaveToGoogleClicked(View view) {
         if (mSchedule != null) {
-            Intent i = new Intent(this, SaveToGoogleActivity.class);
+            Intent i = new Intent(this, SyncWithGoogleActivity.class);
             i.putExtras(mSchedule.getQuarter(mQuarter).toBundle());
             startActivity(i);
         } else {

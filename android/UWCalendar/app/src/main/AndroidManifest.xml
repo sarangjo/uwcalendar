@@ -61,7 +61,7 @@
         </activity>
 
         <activity
-            android:name=".activities.SaveToGoogleActivity"
+            android:name=".activities.SyncWithGoogleActivity"
             android:label="Save To Google"
             android:parentActivityName=".activities.ScheduleActivity"
             android:theme="@style/AppTheme.NoActionBar">

@@ -3,19 +3,12 @@ package com.sarangjoshi.uwcalendar.activities;
 import android.Manifest;
 import android.accounts.AccountManager;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -25,18 +18,14 @@ import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecovera
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.api.client.util.DateTime;
 import com.google.api.services.calendar.model.Event;
-import com.google.api.services.calendar.model.Events;
 import com.sarangjoshi.uwcalendar.R;
 import com.sarangjoshi.uwcalendar.content.Quarter;
 import com.sarangjoshi.uwcalendar.content.SingleClass;
 import com.sarangjoshi.uwcalendar.singletons.GoogleAuth;
 import com.sarangjoshi.uwcalendar.singletons.NetworkOps;
-import com.sarangjoshi.uwcalendar.singletons.ScheduleData;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import pub.devrel.easypermissions.AfterPermissionGranted;
@@ -44,9 +33,9 @@ import pub.devrel.easypermissions.EasyPermissions;
 
 import static com.sarangjoshi.uwcalendar.content.Quarter.QUARTER_NAME_KEY;
 
-public class SaveToGoogleActivity extends AppCompatActivity
+public class SyncWithGoogleActivity extends AppCompatActivity
         implements EasyPermissions.PermissionCallbacks {
-    private static final String TAG = "SaveToGoogleActivity";
+    private static final String TAG = "SyncWithGoogleActivity";
     private NetworkOps net;
     private GoogleAuth goog;
 
@@ -61,7 +50,7 @@ public class SaveToGoogleActivity extends AppCompatActivity
         mProgress = new ProgressDialog(this);
         mProgress.setMessage("Calling Google Calendar API ...");
 
-        setContentView(R.layout.activity_save_to_google);
+        setContentView(R.layout.activity_sync_with_google);
 
         goog = GoogleAuth.getInstance();
         goog.initializeCredential(this);
@@ -291,7 +280,7 @@ public class SaveToGoogleActivity extends AppCompatActivity
         @Override
         protected void onPostExecute(Boolean output) {
             mProgress.hide();
-            Toast.makeText(SaveToGoogleActivity.this, "Saved classes to Google", Toast.LENGTH_LONG).show();
+            Toast.makeText(SyncWithGoogleActivity.this, "Saved classes to Google", Toast.LENGTH_LONG).show();
 
             finish();
         }
@@ -302,7 +291,7 @@ public class SaveToGoogleActivity extends AppCompatActivity
             if (mLastError != null) {
                 if (mLastError instanceof GooglePlayServicesAvailabilityIOException) {
                     goog.playServicesAvailabilityError(
-                            SaveToGoogleActivity.this, ((GooglePlayServicesAvailabilityIOException) mLastError).getConnectionStatusCode());
+                            SyncWithGoogleActivity.this, ((GooglePlayServicesAvailabilityIOException) mLastError).getConnectionStatusCode());
                 } else if (mLastError instanceof UserRecoverableAuthIOException) {
                     startActivityForResult(
                             ((UserRecoverableAuthIOException) mLastError).getIntent(),
@@ -311,7 +300,7 @@ public class SaveToGoogleActivity extends AppCompatActivity
                     Log.e(TAG, "[MakeRequestTask] Error occurred: ", mLastError);
                 }
             } else {
-                Toast.makeText(SaveToGoogleActivity.this, "Request cancelled.", Toast.LENGTH_LONG).show();
+                Toast.makeText(SyncWithGoogleActivity.this, "Request cancelled.", Toast.LENGTH_LONG).show();
             }
         }
     }

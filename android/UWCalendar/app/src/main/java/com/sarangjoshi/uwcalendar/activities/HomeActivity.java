@@ -30,6 +30,7 @@ import com.sarangjoshi.uwcalendar.R;
 import com.sarangjoshi.uwcalendar.content.Connection;
 import com.sarangjoshi.uwcalendar.content.Request;
 import com.sarangjoshi.uwcalendar.content.User;
+import com.sarangjoshi.uwcalendar.fragments.AcceptRequestDialogFragment;
 import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 import com.sarangjoshi.uwcalendar.fragments.ChangePasswordFragment;
 import com.sarangjoshi.uwcalendar.fragments.RequestScheduleFragment;
@@ -44,7 +45,10 @@ import java.util.List;
  * to other users, and view established connections with other users.
  */
 public class HomeActivity extends AppCompatActivity
-        implements RequestScheduleFragment.NameSelectedListener, ChangePasswordFragment.ChangePasswordListener, NetworkOps.UsersLoadedListener {
+        implements RequestScheduleFragment.NameSelectedListener,
+        ChangePasswordFragment.ChangePasswordListener,
+        NetworkOps.UsersLoadedListener,
+        AcceptRequestDialogFragment.AcceptRequestListener {
     private static final String TAG = "HomeActivity";
 
     // Singletons
@@ -95,30 +99,10 @@ public class HomeActivity extends AppCompatActivity
         mRequestsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
-                DialogFragment dialog = new DialogFragment() {
-                    @NonNull
-                    @Override
-                    public Dialog onCreateDialog(Bundle savedInstanceState) {
-                        AlertDialog.Builder builder = new AlertDialog.Builder(HomeActivity.this);
-
-                        // Setup "accept decline" dialog
-                        builder.setTitle("Accept request.").setMessage("Accept request?").setPositiveButton(" Accept", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                // Accept request
-                                mUser.acceptRequest(HomeActivity.this, position);
-                            }
-                        }).setNegativeButton("Decline", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                // Decline request
-                                mUser.declineRequest(HomeActivity.this, position);
-                            }
-                        });
-
-                        return builder.create();
-                    }
-                };
+                DialogFragment dialog = new AcceptRequestDialogFragment();
+                Bundle b = new Bundle();
+                b.putInt(AcceptRequestDialogFragment.ACCEPT_REQUEST_POSITION, position);
+                dialog.setArguments(b);
                 dialog.show(getSupportFragmentManager(), "acceptRequestFragment");
             }
         });
@@ -326,5 +310,17 @@ public class HomeActivity extends AppCompatActivity
                         mDialog.hide();
                     }
                 });
+    }
+
+    @Override
+    public void accept(int position) {
+        // Accept request
+        mUser.acceptRequest(HomeActivity.this, position);
+    }
+
+    @Override
+    public void decline(int position) {
+        // Decline request
+        mUser.declineRequest(HomeActivity.this, position);
     }
 }

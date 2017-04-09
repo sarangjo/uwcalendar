@@ -5,6 +5,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseReference;
 import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 import com.sarangjoshi.uwcalendar.singletons.NetworkOps;
 
@@ -47,23 +48,63 @@ public class User {
     }
 
     /**
-     * Accepts the request at the given position.
+     * Accepts the request at the given position. Just establishes a connection,
+     * does not actually combine schedules.
      */
     public void acceptRequest(Context context, int position) {
         new AcceptRequestTask(context).execute(position);
     }
 
-    /**
-     * Accept a connection request. Parameters: position
-     */
     private class AcceptRequestTask extends NetworkOps.OperationTask<Integer> {
-        AcceptRequestTask(Context context) {
+        public AcceptRequestTask(Context context) {
             super(context, "Accepting request...");
         }
 
         @Override
         protected Boolean doInBackground(Integer... params) {
-            Request requestToAccept = mRequests.get(params[0]);
+            Request req = mRequests.get(params[0]);
+            String userA = fb.getUid();
+            String userB = req.usernameAndId.id;
+            String reqKey = req.key;
+
+            // TODO: Confirm request exists?
+
+            // Register connection and get ID
+            DatabaseReference connRef = fb.getConnectionsRef().push();
+            connRef.child(FirebaseData.PARTICIPANTS_KEY).push().setValue(userA);
+            connRef.child(FirebaseData.PARTICIPANTS_KEY).push().setValue(userB);
+
+            // Add to users' connections child
+            DatabaseReference a = fb.getUsersRef().child(userA).child(FirebaseData.CONNECTIONS_KEY).push();
+            a.child(FirebaseData.CONNECTION_ID_KEY).setValue(connRef.getKey());
+            a.child(FirebaseData.CONNECTION_WITH_KEY).setValue(userB);
+
+            DatabaseReference b = fb.getUsersRef().child(userB).child(FirebaseData.CONNECTIONS_KEY).push();
+            b.child(FirebaseData.CONNECTION_ID_KEY).setValue(connRef.getKey());
+            b.child(FirebaseData.CONNECTION_WITH_KEY).setValue(userA);
+
+            // Delete request
+            fb.getRequestsRef().child(userA).child(reqKey).removeValue();
+
+            return true;
+        }
+    }
+
+    public void connectSchedules(Context context, int requestPosition, String qtr) {
+        new ConnectSchedulesTask(context).execute(requestPosition, qtr);
+    }
+
+    /**
+     * Accept a connection request. Parameters: position
+     */
+    private class ConnectSchedulesTask extends NetworkOps.OperationTask<Object> {
+        ConnectSchedulesTask(Context context) {
+            super(context, "Connecting schedules...");
+        }
+
+        @Override
+        protected Boolean doInBackground(Object... params) {
+            Request requestToAccept = mRequests.get((Integer) params[0]);
 
             HttpURLConnection conn = null;
             try {
@@ -76,7 +117,7 @@ public class User {
                 postParams.put("userA", fb.getUid());
                 postParams.put("userB", requestToAccept.usernameAndId.id);
                 postParams.put("request", requestToAccept.key);
-                postParams.put("quarter", "sp16");
+                postParams.put("quarter", (String) params[1]);
 
                 OutputStream outputPost = new BufferedOutputStream(conn.getOutputStream());
                 BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputPost, "UTF-8"));
@@ -180,6 +221,7 @@ public class User {
             Toast.makeText(mContext, "This will be implemented soon!", Toast.LENGTH_LONG).show();
             return true;
         }
+
     }
 
     public void setRequests(DataSnapshot snapshot) {

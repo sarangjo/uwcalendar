@@ -36,6 +36,7 @@ public class FirebaseData {
     public static final String CLASSES_KEY = "classes";
     public static final String TIME_KEY = "time";
     public static final String QUARTER_ID_KEY = "quarterId";
+    public static final String PARTICIPANTS_KEY = "participants";
 
     private static FirebaseData ourInstance = new FirebaseData();
 

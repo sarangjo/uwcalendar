@@ -8,8 +8,6 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AlertDialog;
 
-import com.sarangjoshi.uwcalendar.activities.HomeActivity;
-
 /**
  * TODO: Write a class comment
  */
@@ -41,12 +39,12 @@ public class AcceptRequestDialogFragment extends DialogFragment {
         builder.setTitle("Accept request.").setMessage("Accept request?").setPositiveButton(" Accept", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                mListener.accept(position);
+                mListener.acceptRequest(position);
             }
         }).setNegativeButton("Decline", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                mListener.decline(position);
+                mListener.declineRequest(position);
             }
         });
 
@@ -54,7 +52,7 @@ public class AcceptRequestDialogFragment extends DialogFragment {
     }
 
     public interface AcceptRequestListener {
-        void accept(int position);
-        void decline(int position);
+        void acceptRequest(int position);
+        void declineRequest(int position);
     }
 }

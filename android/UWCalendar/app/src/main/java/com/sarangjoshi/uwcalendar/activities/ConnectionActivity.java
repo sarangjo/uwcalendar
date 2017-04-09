@@ -8,6 +8,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ExpandableListView;
 import android.widget.Spinner;
 
@@ -27,6 +28,7 @@ import java.util.Map;
  */
 public class ConnectionActivity extends AppCompatActivity implements NetworkOps.ConnectionLoadedListener {
     private ExpandableListView mConnectionView;
+    private Button mConnectSchedulesButton;
     private ProgressDialog mDialog;
 
     private Map<String, List<Day>> mConnection;
@@ -44,17 +46,10 @@ public class ConnectionActivity extends AppCompatActivity implements NetworkOps.
         assert actionBar != null;
         actionBar.setDisplayHomeAsUpEnabled(true);
 
-        mQuarter = getIntent().getStringExtra(FirebaseData.QUARTER_ID_KEY);
-
-        // TODO; choose quarter via spinner
-
         // Views
         mConnectionView = (ExpandableListView) findViewById(R.id.connection_view);
+        mConnectSchedulesButton = (Button) findViewById(R.id.connect_schedules_button);
         mDialog = new ProgressDialog(this);
-
-        // Retrieve connection data
-        mDialog.setMessage("Loading connection...");
-        mDialog.show();
 
         final String[] quarterCodes = ScheduleData.getInstance().getQuarters();
 
@@ -66,13 +61,15 @@ public class ConnectionActivity extends AppCompatActivity implements NetworkOps.
                 android.R.layout.simple_spinner_item, quarterCodes);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
-        spinner.setSelection(quarterCodes.length - 1);
+        spinner.setSelection(quarterCodes.length - 1); // TODO current quarter
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 mQuarter = quarterCodes[i];
-                if (mConnection != null)
-                    updateConnectionView();
+                synchronized (this) {
+                    if (mConnection != null)
+                        updateConnectionView();
+                }
             }
 
             @Override
@@ -80,7 +77,12 @@ public class ConnectionActivity extends AppCompatActivity implements NetworkOps.
             }
         });
 
+        // Retrieve connection data
+        mDialog.setMessage("Loading connection...");
+        mDialog.show();
+
         NetworkOps ops = NetworkOps.getInstance();
+        mQuarter = getIntent().getStringExtra(FirebaseData.QUARTER_ID_KEY);
         String id = getIntent().getStringExtra(FirebaseData.CONNECTION_ID_KEY);
         ops.retrieveConnection(id, this);
     }
@@ -90,14 +92,23 @@ public class ConnectionActivity extends AppCompatActivity implements NetworkOps.
      */
     private void updateConnectionView() {
         List<Day> week = mConnection.get(mQuarter);
-        week = (week == null) ? new ArrayList<Day>() : week;
-        DayListAdapter adapter = new DayListAdapter(this, week);
-        mConnectionView.setAdapter(adapter);
+        if (week == null) {
+            mConnectSchedulesButton.setVisibility(View.VISIBLE);
+            mConnectionView.setVisibility(View.GONE);
+        } else {
+            mConnectSchedulesButton.setVisibility(View.GONE);
+            mConnectionView.setVisibility(View.VISIBLE);
+
+            DayListAdapter adapter = new DayListAdapter(this, week);
+            mConnectionView.setAdapter(adapter);
+        }
     }
 
     @Override
     public void onConnectionLoaded(Map<String, List<Day>> connection) {
-        this.mConnection = connection;
+        synchronized (this) {
+            this.mConnection = connection;
+        }
         updateConnectionView();
         mDialog.hide();
     }

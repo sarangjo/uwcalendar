@@ -1,13 +1,10 @@
 package com.sarangjoshi.uwcalendar.activities;
 
-import android.app.Dialog;
 import android.app.ProgressDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -314,13 +311,13 @@ public class HomeActivity extends AppCompatActivity
     }
 
     @Override
-    public void accept(int position) {
+    public void acceptRequest(int position) {
         // Accept request
         mUser.acceptRequest(HomeActivity.this, position);
     }
 
     @Override
-    public void decline(int position) {
+    public void declineRequest(int position) {
         // Decline request
         mUser.declineRequest(HomeActivity.this, position);
     }

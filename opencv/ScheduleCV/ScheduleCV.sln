@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26730.16
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ScheduleCV", "ScheduleCV\ScheduleCV.vcxproj", "{EA69D4F6-3A51-4534-929D-D503640E268F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EA69D4F6-3A51-4534-929D-D503640E268F}.Debug|x64.ActiveCfg = Debug|x64
+		{EA69D4F6-3A51-4534-929D-D503640E268F}.Debug|x64.Build.0 = Debug|x64
+		{EA69D4F6-3A51-4534-929D-D503640E268F}.Debug|x86.ActiveCfg = Debug|Win32
+		{EA69D4F6-3A51-4534-929D-D503640E268F}.Debug|x86.Build.0 = Debug|Win32
+		{EA69D4F6-3A51-4534-929D-D503640E268F}.Release|x64.ActiveCfg = Release|x64
+		{EA69D4F6-3A51-4534-929D-D503640E268F}.Release|x64.Build.0 = Release|x64
+		{EA69D4F6-3A51-4534-929D-D503640E268F}.Release|x86.ActiveCfg = Release|Win32
+		{EA69D4F6-3A51-4534-929D-D503640E268F}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6A2DDC9A-0A63-4625-994C-31EAE7B6D40C}
+	EndGlobalSection
+EndGlobal

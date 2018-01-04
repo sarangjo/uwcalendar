@@ -1,10 +1,7 @@
-package com.sarangjoshi.uwcalendar.content;
+package com.sarangjoshi.uwcalendar.models;
 
 import com.google.firebase.database.DataSnapshot;
-import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
-import com.sarangjoshi.uwcalendar.singletons.GoogleAuth;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

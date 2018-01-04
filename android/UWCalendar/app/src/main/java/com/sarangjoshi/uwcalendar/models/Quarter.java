@@ -1,9 +1,8 @@
-package com.sarangjoshi.uwcalendar.content;
+package com.sarangjoshi.uwcalendar.models;
 
 import android.os.Bundle;
 
 import com.google.firebase.database.DataSnapshot;
-import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 
 import java.util.ArrayList;
 import java.util.Collections;

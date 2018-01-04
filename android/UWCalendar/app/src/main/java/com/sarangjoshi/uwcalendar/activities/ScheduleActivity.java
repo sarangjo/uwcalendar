@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -14,13 +13,11 @@ import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.sarangjoshi.uwcalendar.R;
-import com.sarangjoshi.uwcalendar.content.Schedule;
-import com.sarangjoshi.uwcalendar.content.SingleClass;
+import com.sarangjoshi.uwcalendar.models.Schedule;
+import com.sarangjoshi.uwcalendar.models.SingleClass;
 import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 import com.sarangjoshi.uwcalendar.singletons.ScheduleData;
 import com.sarangjoshi.uwcalendar.singletons.NetworkOps;
-
-import java.io.IOException;
 
 public class ScheduleActivity extends AppCompatActivity implements NetworkOps.ScheduleLoadedListener {
     public static final int ADD_CLASS_REQUEST = 2001;

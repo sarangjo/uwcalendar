@@ -10,8 +10,8 @@ import android.util.Log;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
-import com.sarangjoshi.uwcalendar.content.Day;
-import com.sarangjoshi.uwcalendar.content.Schedule;
+import com.sarangjoshi.uwcalendar.models.Day;
+import com.sarangjoshi.uwcalendar.models.Schedule;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -9,9 +9,10 @@ import android.widget.BaseExpandableListAdapter;
 import android.widget.TextView;
 
 import com.sarangjoshi.uwcalendar.activities.ConnectionActivity;
-import com.sarangjoshi.uwcalendar.content.Day;
-import com.sarangjoshi.uwcalendar.content.Marker;
-import com.sarangjoshi.uwcalendar.content.SingleClass;
+import com.sarangjoshi.uwcalendar.models.Day;
+import com.sarangjoshi.uwcalendar.models.Marker;
+import com.sarangjoshi.uwcalendar.models.SingleClass;
+import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 
 import java.util.List;
 
@@ -23,10 +24,12 @@ import java.util.List;
 public class DayListAdapter extends BaseExpandableListAdapter {
     private Context mContext;
     private List<Day> mWeek;
+    private FirebaseData fb;
 
     public DayListAdapter(Context c, List<Day> week) {
         this.mContext = c;
         this.mWeek = week;
+        this.fb = FirebaseData.getInstance();
     }
 
     @Override
@@ -90,7 +93,7 @@ public class DayListAdapter extends BaseExpandableListAdapter {
         }
 
         TextView childView = (TextView) convertView;
-        childView.setText(marker.toString());
+        childView.setText(marker.toString(fb));
 
         return convertView;
     }

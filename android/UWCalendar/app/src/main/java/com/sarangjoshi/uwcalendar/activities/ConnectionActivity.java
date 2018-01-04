@@ -14,12 +14,11 @@ import android.widget.Spinner;
 
 import com.sarangjoshi.uwcalendar.R;
 import com.sarangjoshi.uwcalendar.adapters.DayListAdapter;
-import com.sarangjoshi.uwcalendar.content.Day;
+import com.sarangjoshi.uwcalendar.models.Day;
 import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 import com.sarangjoshi.uwcalendar.singletons.ScheduleData;
 import com.sarangjoshi.uwcalendar.singletons.NetworkOps;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 

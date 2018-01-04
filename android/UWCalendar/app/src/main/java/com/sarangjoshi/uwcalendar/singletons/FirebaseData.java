@@ -5,7 +5,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.sarangjoshi.uwcalendar.content.SingleClass;
+import com.sarangjoshi.uwcalendar.models.SingleClass;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -201,9 +201,9 @@ public class FirebaseData {
      * TODO make faster?
      */
     public UsernameAndId getUsernameAndIdFromId(String id) {
-        for (UsernameAndId uandi : getAllUsers()) {
-            if (uandi.id.equals(id)) {
-                return uandi;
+        for (UsernameAndId usernameAndId : getAllUsers()) {
+            if (usernameAndId.id.equals(id)) {
+                return usernameAndId;
             }
         }
         return null;

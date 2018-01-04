@@ -1,4 +1,4 @@
-package com.sarangjoshi.uwcalendar.content;
+package com.sarangjoshi.uwcalendar.models;
 
 import android.content.Intent;
 import android.text.TextUtils;

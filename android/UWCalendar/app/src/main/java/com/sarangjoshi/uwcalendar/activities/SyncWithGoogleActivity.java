@@ -20,8 +20,8 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.calendar.model.Event;
 import com.sarangjoshi.uwcalendar.R;
-import com.sarangjoshi.uwcalendar.content.Quarter;
-import com.sarangjoshi.uwcalendar.content.SingleClass;
+import com.sarangjoshi.uwcalendar.models.Quarter;
+import com.sarangjoshi.uwcalendar.models.SingleClass;
 import com.sarangjoshi.uwcalendar.singletons.FirebaseData;
 import com.sarangjoshi.uwcalendar.singletons.GoogleAuth;
 import com.sarangjoshi.uwcalendar.singletons.NetworkOps;
@@ -32,7 +32,7 @@ import java.util.List;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
-import static com.sarangjoshi.uwcalendar.content.Quarter.QUARTER_ID_KEY;
+import static com.sarangjoshi.uwcalendar.models.Quarter.QUARTER_ID_KEY;
 
 public class SyncWithGoogleActivity extends AppCompatActivity
         implements EasyPermissions.PermissionCallbacks {

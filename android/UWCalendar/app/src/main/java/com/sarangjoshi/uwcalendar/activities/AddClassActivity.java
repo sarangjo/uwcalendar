@@ -1,7 +1,5 @@
 package com.sarangjoshi.uwcalendar.activities;
 
-import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.Dialog;
 import android.app.TimePickerDialog;
 import android.content.Context;
@@ -28,6 +26,9 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
+/**
+ * TODO: add option to choose color (for Google event)
+ */
 public class AddClassActivity extends AppCompatActivity implements SetTimeListener {
     public static final String NAME_KEY = "name";
     public static final String LOCATION_KEY = "location";

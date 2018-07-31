@@ -1,14 +1,18 @@
 import React, { Component } from 'react';
+import { Provider, BrowserRouter, Switch, Route } from 'react-router-dom';
+
+import Home from './pages/Home.react';
+
 import './App.css';
 
 class App extends Component {
   render() {
     return (
-      <div className="App">
-        <header className="App-header">
-          <h1 className="App-title">Welcome to UW Calendar</h1>
-        </header>
-      </div>
+      <BrowserRouter>
+        <Switch>
+          <Route path="/" component={Home} />
+        </Switch>
+      </BrowserRouter>
     );
   }
 }

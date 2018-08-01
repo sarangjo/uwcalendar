@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
-import { Provider, BrowserRouter, Switch, Route } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { BrowserRouter, Switch, Route } from 'react-router-dom';
+import firebase from 'firebase';
 
 import Home from './pages/Home.react';
 
@@ -10,7 +12,7 @@ class App extends Component {
     return (
       <BrowserRouter>
         <Switch>
-          <Route path="/" component={Home} />
+          <Route path="/test" component={Home} />
         </Switch>
       </BrowserRouter>
     );

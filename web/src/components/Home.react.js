@@ -1,7 +1,6 @@
 // @flow
 import React from 'react';
-import { FormControl, InputLabel, Select, MenuItem } from '@material-ui/core';
-import Icon from '@material-ui/core/Icon';
+import { FormControl, InputLabel, Select, MenuItem, Button } from '@material-ui/core';
 
 import Class from './Class.react';
 import AddClass from './AddClass.react';
@@ -48,13 +47,17 @@ class Home extends React.Component {
     });
   }
 
+  handleGoogleSync(event) {
+
+  }
+
   render() {
     let quarterMenuItems = QUARTERS.map((q) => (
       <MenuItem key={q} value={q}>{q}</MenuItem>
     ));
 
-    let classItems = this.state.quarterSchedule.map((c) => (
-      <Class data={c}/>
+    let classItems = this.state.quarterSchedule.map((c, i) => (
+      <Class key={i} data={c}/>
     ));
 
     return (
@@ -66,6 +69,7 @@ class Home extends React.Component {
             {quarterMenuItems}
           </Select>
         </FormControl>
+        <Button onClick={this.handleGoogleSync.bind(this)}>Sync with Google</Button>
         {classItems}
         <AddClass onAdd={this.handleAddClass.bind(this)}/>
       </div>

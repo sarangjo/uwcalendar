@@ -5,6 +5,7 @@ import { FormControl, InputLabel, Select, MenuItem, Button } from '@material-ui/
 import Class from './Class.react';
 import AddClass from './AddClass.react';
 
+import goog from '../services/goog';
 import fb from '../services/fb';
 import { QUARTERS } from '../constants';
 
@@ -17,9 +18,7 @@ class Home extends React.Component {
     };
   }
 
-  componentDidMount() {
-    this.updateSubscriber();
-  }
+  componentDidMount = this.updateSubscriber;
 
   updateSubscriber() {
     // instead of a one-time get why not just attach a hook to the schedule
@@ -48,7 +47,10 @@ class Home extends React.Component {
   }
 
   handleGoogleSync(event) {
-
+    goog.updateGoogle(this.state.quarterSchedule)
+    .then((gevs) => fb.updateGoogleEventIds(this.state.quarterSchedule, gevs))
+    .then(() => {})
+    .catch(() => {});
   }
 
   render() {

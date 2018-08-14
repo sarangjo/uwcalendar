@@ -21,30 +21,9 @@ class App extends Component {
 
   componentDidMount() {
     this.unAuth = firebase.auth().onAuthStateChanged((user) => {
-      this.setState( { user: user, loading: false, }, () => {
-        if (user) {
-          let script = document.createElement('script');
-          script.type = 'text/javascript';
-          script.src = 'https://apis.google.com/js/api.js';
-          script.onload = (e) => {
-            window.gapi.load('client', () => {
-              window.gapi.client.init({
-                apiKey: goog.config.apiKey,
-                clientId: goog.config.clientId,
-                discoveryDocs: goog.DISCOVERY_DOCS,
-                scope: goog.SCOPES.join(' '),
-              })
-              .then(() => user.getIdToken())
-              .then(token => {
-                window.gapi.client.setToken({
-                  access_token: localStorage.getItem('accessToken')
-                });
-              });
-            }); // end onload
-          }
-          document.getElementsByTagName('head')[0].appendChild(script);
-        }
-      });
+      this.setState({
+        user: user, loading: false,
+      }, goog.apiLoaded.bind(this.state.user));
     });
   }
 

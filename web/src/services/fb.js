@@ -19,7 +19,7 @@ function getScheduleSubscriber(uid, quarter, callback) {
   .collection("classes")
   .onSnapshot((s) => {
     // Sanitizing an empty schedule
-    callback(s.docs.map(d => d.data()));
+    callback(s.docs.map(d => { return { ...d.data(), id: d.id } }));
   });
 }
 
@@ -29,6 +29,18 @@ function addClass(uid, quarter, o) {
   .collection("quarters").doc(quarter)
   .collection("classes")
   .add(o);
+}
+
+// Returns an array of success values
+function updateGoogleEventIds(uid, quarter, schedule, googleEvents) {
+  return Promise.all((c, i) => {
+    return db.collection("schedules").doc(uid)
+    .collection("quarters").doc(quarter)
+    .collection("classes").doc(c.id)
+    .update({
+      googleEventId: googleEvents[i].eventId
+    });
+  });
 }
 
 const uiConfig = {

@@ -24,10 +24,20 @@ function getScheduleSubscriber(uid, quarter, callback) {
 
 // Returns a Promise with the created document
 function addClass(uid, quarter, o) {
+  let {id, ...oWithoutId} = o;
   return db.collection("schedules").doc(uid)
   .collection("quarters").doc(quarter)
   .collection("classes")
-  .add(o);
+  .add(oWithoutId);
+}
+
+// Returns a Promise with the updated document
+function updateClass(uid, quarter, classId, o) {
+  let {id, ...oWithoutId} = o;
+  return db.collection("schedules").doc(uid)
+  .collection("quarters").doc(quarter)
+  .collection("classes").doc(classId)
+  .set(oWithoutId);
 }
 
 // Returns a Promise that resolves with an array of success values
@@ -71,6 +81,7 @@ const uiConfig = {
 export default {
   getScheduleSubscriber,
   addClass,
+  updateClass,
   updateGoogleEventIds,
 
   uiConfig,

@@ -3,11 +3,12 @@ import React from 'react';
 import { FormControl, InputLabel, Select, MenuItem, Button } from '@material-ui/core';
 
 import Class from './Class.react';
-import AddClass from './AddClass.react';
 
 import goog from '../services/goog';
 import fb from '../services/fb';
 import { QUARTERS } from '../constants';
+
+import './Home.css';
 
 class Home extends React.Component {
   constructor(props) {
@@ -38,6 +39,15 @@ class Home extends React.Component {
     }, this.updateSubscriber);
   }
 
+  handleSaveClass(id, o, event) {
+    console.log(o, id);
+    fb.updateClass(this.props.user.uid, this.state.quarter, id, o).then((s) => {
+      // TODO Do something with state, but not setting state because we already
+      // do that with our subscriber
+      console.log(s);
+    })
+  }
+
   handleAddClass(o, event) {
     fb.addClass(this.props.user.uid, this.state.quarter, o).then((s) => {
       // TODO Do something with state, but not setting state because we already
@@ -65,7 +75,7 @@ class Home extends React.Component {
     ));
 
     let classItems = this.state.quarterSchedule.map((c, i) => (
-      <Class key={i} data={c}/>
+      <Class key={i} data={c} onClick={this.handleSaveClass.bind(this, c.id)}/>
     ));
 
     return (
@@ -79,7 +89,10 @@ class Home extends React.Component {
         </FormControl>
         <Button onClick={this.handleGoogleSync.bind(this)}>Sync with Google</Button>
         {classItems}
-        <AddClass onAdd={this.handleAddClass.bind(this)}/>
+        <div className='add-class'>
+          New Class:
+          <Class onClick={this.handleAddClass.bind(this)}/>
+        </div>
       </div>
     );
   }

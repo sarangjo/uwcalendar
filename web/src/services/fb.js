@@ -1,7 +1,6 @@
 // @flow
 import firebase from 'firebase';
 import 'firebase/firestore';
-import fs from 'fs';
 
 import goog from './goog';
 
@@ -31,16 +30,17 @@ function addClass(uid, quarter, o) {
   .add(o);
 }
 
-// Returns an array of success values
+// Returns a Promise that resolves with an array of success values
 function updateGoogleEventIds(uid, quarter, schedule, googleEvents) {
-  return Promise.all((c, i) => {
+  let promises = schedule.map((c, i) => {
     return db.collection("schedules").doc(uid)
     .collection("quarters").doc(quarter)
     .collection("classes").doc(c.id)
     .update({
-      googleEventId: googleEvents[i].eventId
+      googleEventId: googleEvents[i].id
     });
   });
+  return Promise.all(promises);
 }
 
 const uiConfig = {
@@ -71,6 +71,7 @@ const uiConfig = {
 export default {
   getScheduleSubscriber,
   addClass,
+  updateGoogleEventIds,
 
   uiConfig,
 };

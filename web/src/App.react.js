@@ -23,21 +23,12 @@ class App extends Component {
     this.unAuth = firebase.auth().onAuthStateChanged((user) => {
       this.setState({
         user: user, loading: false,
-      }, goog.apiLoaded.bind(this.state.user));
+      });
     });
   }
 
   componentWillUnmount() {
     if (this.unAuth) this.unAuth();
-  }
-
-  // Once the user has been logged in, we load the Google API
-  handleLogin() {
-    var script = document.createElement("script");
-    script.type = "text/javascript";
-    script.src = "https://apis.google.com/js/api.js";
-    script.onload = goog.apiLoaded.bind(null, this.state.user);
-    document.getElementsByTagName("head")[0].appendChild(script);
   }
 
   handleLogout() {

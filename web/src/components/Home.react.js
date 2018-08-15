@@ -47,8 +47,14 @@ class Home extends React.Component {
   }
 
   handleGoogleSync(event) {
-    goog.updateGoogle(this.state.quarterSchedule)
-    .then((gevs) => fb.updateGoogleEventIds(this.state.quarterSchedule, gevs))
+    // TODO add loading thingy
+
+    let x = goog.loadApi(this.props.user)
+    .then(() => goog.updateGoogle(this.state.quarterSchedule));
+
+    // IDEA don't always update the google event id?
+    x.then(gevs => fb.updateGoogleEventIds(this.props.user.uid, this.state.quarter, this.state.quarterSchedule, gevs))
+    // FIXME error handling
     .then(() => {})
     .catch(() => {});
   }

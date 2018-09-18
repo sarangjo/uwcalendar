@@ -8,7 +8,6 @@ import './App.css';
 import Login from './components/Login.react';
 import Home from './components/Home.react';
 import { component } from './util';
-import goog from './services/goog';
 
 class App extends Component {
   constructor(props) {

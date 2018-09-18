@@ -8,8 +8,6 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"];
 const CALENDAR_ID = 'primary';
 
-const TOKEN_PATH = '../config/token.json';
-
 let gapi;
 
 function loadApi(user) {

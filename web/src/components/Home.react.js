@@ -6,6 +6,7 @@ import Class from './Class.react';
 
 import goog from '../services/goog';
 import fb from '../services/fb';
+import uw from '../services/uw';
 import { QUARTERS } from '../constants';
 
 import './Home.css';
@@ -56,6 +57,10 @@ class Home extends React.Component {
     });
   }
 
+  handleUw(event) {
+    uw.getQuarterDetails();
+  }
+
   handleGoogleSync(event) {
     // TODO add loading thingy
 
@@ -87,6 +92,7 @@ class Home extends React.Component {
             {quarterMenuItems}
           </Select>
         </FormControl>
+        <Button onClick={this.handleUw.bind(this)}>UW Stuff</Button>
         <Button onClick={this.handleGoogleSync.bind(this)}>Sync with Google</Button>
         {classItems}
         <div className='add-class'>

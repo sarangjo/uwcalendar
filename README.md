@@ -2,7 +2,7 @@
 
 A calendar optimizing application for UW students, using the Google Calendar API and more.
 
-## Rough template
+## Rough template (v1) *(Outdated)*
 ```
 usercollection [
   {

@@ -10,12 +10,17 @@ firebase.initializeApp(config);
 let db = firebase.firestore();
 db.settings({ timestampsInSnapshots: true });
 
+// Helper to get to the `classes` collection
+function getClassesCollection(uid, quarter) {
+  return db.collection("schedules").doc(uid)
+  .collection("quarters").doc(quarter)
+  .collection("classes");
+}
+
 // Returns unsub
 // callback is (data blob) => ()
 function getScheduleSubscriber(uid, quarter, callback) {
-  return db.collection("schedules").doc(uid)
-  .collection("quarters").doc(quarter)
-  .collection("classes")
+  return getClassesCollection(uid, quarter)
   .onSnapshot((s) => {
     // Sanitizing an empty schedule
     callback(s.docs.map(d => { return { ...d.data(), id: d.id } }));
@@ -24,28 +29,23 @@ function getScheduleSubscriber(uid, quarter, callback) {
 
 // Returns a Promise with the created document
 function addClass(uid, quarter, o) {
+  // TODO sanitize o
   let {id, ...oWithoutId} = o;
-  return db.collection("schedules").doc(uid)
-  .collection("quarters").doc(quarter)
-  .collection("classes")
-  .add(oWithoutId);
+  return getClassesCollection(uid, quarter).add(oWithoutId);
 }
 
 // Returns a Promise with the updated document
 function updateClass(uid, quarter, classId, o) {
+  // TODO sanitize o
   let {id, ...oWithoutId} = o;
-  return db.collection("schedules").doc(uid)
-  .collection("quarters").doc(quarter)
-  .collection("classes").doc(classId)
+  return getClassesCollection(uid, quarter).doc(classId)
   .set(oWithoutId);
 }
 
 // Returns a Promise that resolves with an array of success values
 function updateGoogleEventIds(uid, quarter, schedule, googleEvents) {
   let promises = schedule.map((c, i) => {
-    return db.collection("schedules").doc(uid)
-    .collection("quarters").doc(quarter)
-    .collection("classes").doc(c.id)
+    return getClassesCollection(uid, quarter).doc(c.id)
     .update({
       googleEventId: googleEvents[i].id
     });

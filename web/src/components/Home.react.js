@@ -41,12 +41,20 @@ class Home extends React.Component {
   }
 
   handleSaveClass(id, o, event) {
+    fb.updateClass(this.props.user.uid, this.state.quarter, id, o)
+    .then((s) => {
+      alert("Updated!");
+    });
+    // TODO add error catching
+  }
+
+  handleDeleteClass(id, o, event) {
+    // TODO deletion requires deleting Google event first
     console.log(o, id);
-    fb.updateClass(this.props.user.uid, this.state.quarter, id, o).then((s) => {
-      // TODO Do something with state, but not setting state because we already
-      // do that with our subscriber
-      console.log(s);
-    })
+    fb.deleteClass(this.props.user.uid, this.state.quarter, id, o).then((s) => {
+      alert("Deleted!");
+    });
+    // TODO add error catching
   }
 
   handleAddClass(o, event) {
@@ -70,7 +78,9 @@ class Home extends React.Component {
     // IDEA don't always update the google event id?
     x.then(gevs => fb.updateGoogleEventIds(this.props.user.uid, this.state.quarter, this.state.quarterSchedule, gevs))
     // FIXME error handling
-    .then(() => {})
+    .then(() => {
+      console.log("Synced with Google!");
+    })
     .catch(() => {});
   }
 
@@ -80,7 +90,8 @@ class Home extends React.Component {
     ));
 
     let classItems = this.state.quarterSchedule.map((c, i) => (
-      <Class key={i} data={c} onClick={this.handleSaveClass.bind(this, c.id)}/>
+      <Class key={i} data={c} onClick={this.handleSaveClass.bind(this, c.id)} text="Update"
+        onDelete={this.handleDeleteClass.bind(this, c.id)}/>
     ));
 
     return (

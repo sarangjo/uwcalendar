@@ -3,7 +3,7 @@ import React from 'react';
 import { TextField, Button, Select, MenuItem, Input } from '@material-ui/core';
 import Icon from '@material-ui/core/Icon';
 
-const NAMES = ['M', 'T', 'W', 'Th', 'F'];
+import goog from '../services/goog';
 
 class Class extends React.Component {
   constructor(props) {
@@ -18,6 +18,15 @@ class Class extends React.Component {
   }
 
   render() {
+    let deleteButton;
+    if (this.props.onDelete) {
+      deleteButton = (
+        <Button variant="contained" onClick={this.props.onDelete.bind(null, Object.assign({}, this.state))}>
+          Delete
+          <Icon>delete</Icon>
+        </Button>
+      );
+    }
     // TODO color it if it's not state.name != props.data.name
     return (
       <div className={this.props.className}>
@@ -26,14 +35,15 @@ class Class extends React.Component {
         <TextField label="Start Time" type="time" value={this.state.start} onChange={this.handleChange('start')} inputProps={{ step: 1800 }} />
         <TextField label="End Time" type="time" value={this.state.end} onChange={this.handleChange('end')} inputProps={{ step: 1800 }} />
         <Select multiple value={this.state.days} onChange={this.handleChange('days')} input={<Input />}>
-          {NAMES.map(name => (
+          {goog.RECURRENCE_DAYS.map(name => (
             <MenuItem key={name} value={name}>{name}</MenuItem>
           ))}
         </Select>
         <Button variant="contained" onClick={this.props.onClick.bind(null, Object.assign({}, this.state))}>
-          Save
+          {this.props.text}
           <Icon>save</Icon>
         </Button>
+        {deleteButton}
       </div>
     );
   }
@@ -45,9 +55,11 @@ Class.defaultProps = {
     location: "Location",
     start: "15:00",
     end: "16:00",
-    days: ['M'],
+    days: [goog.RECURRENCE_DAYS[0]],
   },
-  onClick: () => {}
+  onClick: () => {},
+  text: "Save",
+  onDelete: null,
 };
 
 export default Class;

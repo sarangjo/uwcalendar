@@ -72,12 +72,14 @@ class Home extends React.Component {
   handleGoogleSync(event) {
     // TODO add loading thingy
 
-    let x = goog.loadApi(this.props.user)
-    .then(() => goog.updateGoogle(this.state.quarterSchedule));
-
+    goog.loadApi(this.props.user)
+    .then(() => goog.updateGoogle(this.state.quarterSchedule))
     // IDEA don't always update the google event id?
-    x.then(gevs => fb.updateGoogleEventIds(this.props.user.uid, this.state.quarter, this.state.quarterSchedule, gevs))
-    // FIXME error handling
+    .then(
+      gevs => fb.updateGoogleEventIds(this.props.user.uid, this.state.quarter, this.state.quarterSchedule, gevs),
+      err => alert(err.error)
+    )
+    // FIXME error handling is wrong here
     .then(() => {
       console.log("Synced with Google!");
     })

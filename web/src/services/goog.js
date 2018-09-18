@@ -51,27 +51,39 @@ function loadApi(user) {
 const RECURRENCE_FORMAT = "YYYYMMDD";
 
 function toGoogleEvent(c, d = uw.getQuarterDetails("au18")) {
-  let recurrence = [
-  ];
-
   // Calculate start date
-  let offset = RECURRENCE_DAYS.indexOf(c.days[0]);
-  // TODO this is slightly complicated, since d.start can be anything, not just Monday
-  let startDate = moment(d.start).day(offset + 1);
+  let startDate;
+  let i = 0;
+  // Go through all of the days of this class and find the first one that's actually
+  // in the quarter
+  while (true) {
+    let dayOfWeek = RECURRENCE_DAYS.indexOf(c.days[i % c.days.length]) + 1; // +1 because Sunday is 0
+    // Include potential of overflow if the start date is in the next week
+    dayOfWeek += 7 * Math.floor(i / c.days.length);
 
-  let toString = (t) => moment(startDate).set('hour', t.substring(0, 2)).set('minute' t.substring(3)).toISOString();
-  let startTime = toString(c.start);
-  let endTime = toString(c.end);
+    startDate = moment(d.start).day(dayOfWeek);
+    if (startDate.isAfter(d.start)) {
+      // We found the correct start date!
+      break;
+    }
+    // If not, keep looking through this class's days
+    i++;
+  }
 
+  // RFC3339 formatting
+  let toString = (t) => moment(startDate).set('hour', t.substring(0, 2)).set('minute', t.substring(3))
+    .format("YYYY-MM-DDTHH:mm:ss") + "Z";
+
+  // TODO timezone
   return {
     summary: c.name,
     location: c.location,
     start: {
-      dateTime: startTime,
+      dateTime: toString(c.start),
       timeZone: 'America/Los_Angeles',
     },
     end: {
-      dateTime: endTime,
+      dateTime: toString(c.end),
       timeZone: 'America/Los_Angeles',
     },
     recurrence: [
@@ -93,10 +105,6 @@ function updateGoogle(schedule) {
   console.log(schedule);
   let promises = schedule.map(c =>
     new Promise(function(resolve, reject) {
-      console.log(toGoogleEvent(c));
-      return;
-
-
       (
         (c.googleEventId) ?
         // - if the class already has an associated Google Event ID, update the google
@@ -113,9 +121,12 @@ function updateGoogle(schedule) {
           calendarId: CALENDAR_ID,
           resource: toGoogleEvent(c),
         })
-      ).execute((event) => {
-        // FIXME error handling
-        resolve(event);
+      ).execute((o) => {
+        if (o.error) {
+          reject(o);
+        } else {
+          resolve(o);
+        }
       });
     })
   );

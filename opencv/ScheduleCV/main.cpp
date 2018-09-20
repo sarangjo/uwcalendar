@@ -3,6 +3,8 @@
 #include "opencv2/imgproc/imgproc.hpp"
 
 #include <iostream>
+#include <direct.h>
+#include <limits.h>
 
 #include "HourHeight.h"
 #include "Tools.h"
@@ -14,6 +16,11 @@ using namespace std;
 #define THRESHOLD			15
 #define IN_THRESH(x,y)		abs((x) - (y)) < THRESHOLD
 
+#define SCHEDULE_FILE	"schedule.jpg"
+
+string folder;
+
+// TODO
 Vec4i findLeftEdge(vector<Vec4i> lines, size_t width) {
 	vector<Vec4i> desiredLines = vector<Vec4i>();
 
@@ -49,6 +56,7 @@ Vec4i findLeftEdge(vector<Vec4i> lines, size_t width) {
 	return rightLine;
 }
 
+// TODO
 Vec4i findTopEdge(vector<Vec4i> lines, Vec4i leftEdge) {
 	Vec4i topEdge = { -1, -1, -1, -1 };
 
@@ -75,6 +83,7 @@ Vec4i findTopEdge(vector<Vec4i> lines, Vec4i leftEdge) {
 	return topEdge;
 }
 
+// TODO
 Mat processDay(Mat daySchedule, uint32_t dayIndex, uint32_t hourHeight) {
 	Mat dsGray = daySchedule;
 	cvtColor(daySchedule, dsGray, CV_BGR2GRAY);
@@ -127,7 +136,12 @@ Mat processDay(Mat daySchedule, uint32_t dayIndex, uint32_t hourHeight) {
 }
 
 int main(int argc, char** argv) {
-	string filename = "../data/schedule.jpg";
+	if (argc != 2) {
+		cout << "Need folder" << endl;
+		exit(1);
+	}
+	string folder = argv[1];
+	string filename = folder + "/" SCHEDULE_FILE;
 	Mat src = imread(filename);
 	if (src.empty()) {
 		cout << "can't open " << filename << endl;
@@ -179,7 +193,6 @@ int main(int argc, char** argv) {
 	// Process the schedule day by day; for now assume all 5 days are in the schedule
 	for (size_t i = 0; i < 5; i++) {
 		Mat daySchedule = sched(Range(0, sched.rows), Range(i * sched.cols / 5, (i + 1) * (sched.cols / 5)));
-		//imwrite("../data/day" + to_string(i) + ".jpg", daySchedule);
 
 		// Process each day and push the processed image into a list
 		matrices.push_back(processDay(daySchedule, i, hourHeight));
@@ -189,8 +202,11 @@ int main(int argc, char** argv) {
 	// Combine processed days into a single matrix horizontally
 	Mat contourMat;
 	hconcat(matrices, contourMat);
-	imwrite("../data/output.jpg", contourMat);
+	imwrite(folder + "/output.jpg", contourMat);
 
+	cout << "Done!" << endl;
 	waitKey();
+
+	exit(0);
 	return 0;
 }

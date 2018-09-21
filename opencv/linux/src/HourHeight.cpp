@@ -15,6 +15,7 @@ using namespace std;
 
 typedef vector<Point> Contour;
 
+// Converts countours into 2d ranges
 vector<Vec2i> contoursToRanges(vector<Contour> contours) {
 	vector<Vec2i> ranges;
 	for (Contour contour : contours) {
